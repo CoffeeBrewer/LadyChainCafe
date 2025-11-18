@@ -180,26 +180,33 @@
             return response.json();
         }
 
-        async function loadStats() {
-            try {
-                const data = await fetchJson("/stats");
+async function loadStats() {
+    try {
+        const data = await fetchJson("/stats");
 
-                console.log("Stats response:", data);
+        console.log("Stats response:", data);
 
-                const blockCount = data.blocks || data.block_count || data.latest_block || data.blockNumber;
-                const addressCount = data.addresses || data.address_count || data.wallets;
-                const txCount = data.transactions || data.tx_count || data.total_transactions;
+        // Gebruik nu precies de velden uit jouw API:
+        const blockCount = data.total_blocks;
+        const addressCount = data.total_addresses;
+        const txCount = data.total_transactions;
 
-                document.getElementById("block-count").innerText = formatNumber(blockCount);
-                document.getElementById("wallet-count").innerText = formatNumber(addressCount);
-                document.getElementById("transaction-count").innerText = formatNumber(txCount);
+        document.getElementById("block-count").innerText = formatNumber(blockCount);
+        document.getElementById("wallet-count").innerText = formatNumber(addressCount);
+        document.getElementById("transaction-count").innerText = formatNumber(txCount);
 
-                document.getElementById("last-updated").innerText =
-                    "Updated: " + new Date().toLocaleTimeString("en-GB");
-            } catch (err) {
-                console.error(err);
-            }
-        }
+        // Bonus: je kunt deze eventueel later nog op extra plekken tonen:
+        // data.average_block_time
+        // data.transactions_today
+        // data.gas_used_today
+        // etc.
+
+        document.getElementById("last-updated").innerText =
+            "Updated: " + new Date().toLocaleTimeString("en-GB");
+    } catch (err) {
+        console.error(err);
+    }
+}
 
         async function loadCharts() {
             try {
