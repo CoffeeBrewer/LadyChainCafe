@@ -20,18 +20,6 @@
                 <span class="logo-sub">Explorer dashboard for LadyChain</span>
             </div>
         </div>
-
-        <!-- SEARCH BAR -->
-        <form class="search-bar" onsubmit="handleSearch(event)">
-            <input
-                id="global-search"
-                type="text"
-                placeholder="Search hash, address, or block number…"
-                autocomplete="off"
-            />
-            <button type="submit">Search</button>
-        </form>
-
         <div class="network-pill">
             <span class="dot"></span>
             <span id="network-name">LadyChain Mainnet</span>
@@ -113,11 +101,11 @@
             </div>
         </section>
 
-        <!-- DAILY TX GROWTH + GAS -->
+        <!-- DAILY GROWTH (TX) + GAS -->
         <section class="panel fade-in">
             <div class="panel-header">
                 <div>
-                    <h2>LadyChain Daily Transactions</h2>
+                    <h2>LadyChain Daily Growth</h2>
                     <p class="panel-subtitle">
                         Transactions per day — see how active LadyChain is over time.
                     </p>
@@ -158,34 +146,6 @@
                 <p id="walletsChart-empty" class="placeholder" style="display: none;">
                     No wallet growth data available (yet).
                 </p>
-            </div>
-        </section>
-
-        <!-- LATEST BLOCKS -->
-        <section class="panel fade-in">
-            <div class="panel-header">
-                <div>
-                    <h2>Latest LadyChain Blocks</h2>
-                    <p class="panel-subtitle">
-                        Recently produced blocks on LadyChain.
-                    </p>
-                </div>
-            </div>
-            <div class="panel-body table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Block</th>
-                            <th>Hash</th>
-                            <th>Tx</th>
-                            <th>Gas used</th>
-                            <th>Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="latest-blocks-body">
-                        <tr><td colspan="5" class="placeholder">Loading latest blocks…</td></tr>
-                    </tbody>
-                </table>
             </div>
         </section>
 
@@ -319,64 +279,7 @@
             return response.json();
         }
 
-        // === SEARCH ===
-        async function handleSearch(event) {
-            event.preventDefault();
-            const input = document.getElementById("global-search");
-            const q = (input.value || "").trim();
-            if (!q) return;
-
-            // Heuristiek: hash / address / blocknummer
-            if (/^\d+$/.test(q)) {
-                // pure nummer => blocknummer
-                openBlockDetail(q);
-                return;
-            }
-
-            if (q.startsWith("0x") && q.length > 50) {
-                // Zou een tx of address kunnen zijn: zoek via /search en kies beste match
-                try {
-                    const res = await fetchJson("/search?q=" + encodeURIComponent(q));
-                    const item = (res.items && res.items[0]) || res[0] || res || null;
-                    if (item) {
-                        if (item.hash && !item.address && !item.number) {
-                            openTxDetail(item.hash);
-                        } else if (item.address) {
-                            openAddressDetail(item.address);
-                        } else if (item.number) {
-                            openBlockDetail(item.number);
-                        } else {
-                            // fallback: probeer tx-detail
-                            openTxDetail(q);
-                        }
-                    } else {
-                        openTxDetail(q);
-                    }
-                } catch (e) {
-                    console.error("search error", e);
-                    openTxDetail(q);
-                }
-                return;
-            }
-
-            // Anders: algemene search
-            try {
-                const res = await fetchJson("/search?q=" + encodeURIComponent(q));
-                const item = (res.items && res.items[0]) || res[0] || null;
-                if (!item) return;
-                if (item.hash && !item.address && !item.number) {
-                    openTxDetail(item.hash);
-                } else if (item.address) {
-                    openAddressDetail(item.address);
-                } else if (item.number) {
-                    openBlockDetail(item.number);
-                }
-            } catch (err) {
-                console.error("search error", err);
-            }
-        }
-
-        // === MAIN STATS + METRICS ===
+        // MAIN STATS + METRICS
         async function loadStats() {
             try {
                 const data = await fetchJson("/stats");
@@ -399,7 +302,7 @@
                 clearSkeleton("transaction-count");
                 clearSkeleton("transaction-today");
 
-                const tps = txToday / 86400;
+                const tps = txToday / 86400; // simple approximation
                 document.getElementById("metric-avg-block-time").innerText =
                     avgBlockTime ? formatNumber(avgBlockTime) + " s" : "–";
                 document.getElementById("metric-tps").innerText = formatNumber(tps);
@@ -423,12 +326,11 @@
             }
         }
 
-        // === CHARTS (TX + NEW WALLETS + GAS) ===
+        // DAILY TX CHART + GAS + NEW WALLETS CHART
         async function loadCharts() {
             try {
                 const data = await fetchJson("/stats/charts");
 
-                // TX per dag
                 const daily = data.daily_transactions || [];
                 daily.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -466,7 +368,7 @@
                     }
                 });
 
-                // Gas data
+                // Gas data (from charts response)
                 if (data.low_gas !== undefined) {
                     const low = formatNumber(data.low_gas) + " gwei";
                     const avg = formatNumber(data.avg_gas_price || data.avg_gas) + " gwei";
@@ -485,7 +387,7 @@
                     clearSkeleton(elHigh);
                 }
 
-                // New wallets per day – zodra backend dit aanbiedt
+                // New wallets per day – this depends on what your backend exposes
                 const walletsArray =
                     data.daily_new_addresses ||
                     data.daily_wallets ||
@@ -535,50 +437,7 @@
             }
         }
 
-        // === LATEST BLOCKS ===
-        async function loadLatestBlocks() {
-            try {
-                const data = await fetchJson("/main-page/blocks");
-                const tbody = document.getElementById("latest-blocks-body");
-                tbody.innerHTML = "";
-
-                const items = data.items || [];
-                if (!items.length) {
-                    tbody.innerHTML =
-                        '<tr><td colspan="5" class="placeholder">No blocks found</td></tr>';
-                    return;
-                }
-
-                items.forEach((block) => {
-                    const tr = document.createElement("tr");
-                    const num = block.number || block.block_number;
-                    const hash = block.hash || block.block_hash;
-                    const txCount = block.transaction_count || block.txs || block.tx_count || 0;
-                    const gasUsed = block.gas_used || block.gasUsed || 0;
-                    const ts = block.timestamp;
-
-                    tr.innerHTML = `
-                        <td>
-                            <button class="link-button" onclick="openBlockDetail('${num}')">
-                                ${num}
-                            </button>
-                        </td>
-                        <td title="${hash || ""}">${shortenHash(hash || "")}</td>
-                        <td>${formatNumber(txCount)}</td>
-                        <td>${formatNumber(gasUsed)}</td>
-                        <td>${formatTimestamp(ts)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error("loadLatestBlocks error:", err);
-                const tbody = document.getElementById("latest-blocks-body");
-                tbody.innerHTML =
-                    '<tr><td colspan="5" class="placeholder">Error while loading blocks</td></tr>';
-            }
-        }
-
-        // === LATEST TRANSACTIONS ===
+        // LATEST TRANSACTIONS
         async function loadLatestTransactions() {
             try {
                 const data = await fetchJson("/main-page/transactions");
@@ -633,7 +492,7 @@
             }
         }
 
-        // === RICHEST WALLETS ===
+        // RICHEST WALLETS
         async function loadTopAccounts() {
             try {
                 const data = await fetchJson("/stats/top-accounts");
@@ -671,17 +530,13 @@
             }
         }
 
-        // === DETAIL PANEL LOGIC ===
+        // DETAIL PANEL LOGIC
         function openTxDetail(hash) {
             openDetail("transaction", hash);
         }
 
         function openAddressDetail(address) {
             openDetail("address", address);
-        }
-
-        function openBlockDetail(id) {
-            openDetail("block", id);
         }
 
         async function openDetail(type, id) {
@@ -692,22 +547,11 @@
 
             try {
                 if (type === "transaction") {
-                    const [tx, logs, internalTx] = await Promise.all([
-                        fetchJson(`/transactions/${id}`),
-                        fetchJson(`/transactions/${id}/logs`).catch(() => []),
-                        fetchJson(`/transactions/${id}/internal-transactions`).catch(() => [])
-                    ]);
-                    renderTxDetail(tx, logs, internalTx);
-                } else if (type === "address") {
-                    const [addr, balances, transfers] = await Promise.all([
-                        fetchJson(`/addresses/${id}`),
-                        fetchJson(`/addresses/${id}/token-balances`).catch(() => []),
-                        fetchJson(`/addresses/${id}/token-transfers`).catch(() => [])
-                    ]);
-                    renderAddressDetail(addr, balances, transfers);
-                } else if (type === "block") {
-                    const block = await fetchJson(`/blocks/${id}`);
-                    renderBlockDetail(block);
+                    const tx = await fetchJson(`/transactions/${id}`);
+                    renderTxDetail(tx);
+                } else {
+                    const addr = await fetchJson(`/addresses/${id}`);
+                    renderAddressDetail(addr);
                 }
             } catch (err) {
                 console.error("openDetail error:", err);
@@ -720,344 +564,260 @@
             const overlay = document.getElementById("detail-overlay");
             overlay.classList.add("hidden");
         }
+/* ========== TAB HANDLING ========== */
+function initDetailTabs() {
+    const tabs = document.querySelectorAll(".detail-tab");
 
-        function renderTxDetail(tx, logs, internalTx) {
-            const content = document.getElementById("detail-content");
-            let displayValue;
-            if (tx.value_formatted !== undefined && tx.value_formatted !== null) {
-                displayValue = Number(tx.value_formatted);
-            } else {
-                displayValue = from18(tx.value || 0);
-            }
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            const target = tab.dataset.tab;
 
-            const gasPriceGwei = tx.gas_price ? Number(tx.gas_price) / 1e9 : null;
-            const created = tx.created_at || tx.timestamp || tx.time;
+            // Deactivate all
+            tabs.forEach(t => t.classList.remove("active"));
+            document.querySelectorAll(".detail-section").forEach(sec => sec.classList.remove("active"));
 
-            const statusLabel = (tx.status === 1 || tx.success) ? "Success" : "Failed / Unknown";
+            // Activate clicked
+            tab.classList.add("active");
+            document.getElementById(target).classList.add("active");
+        });
+    });
+}
 
-            content.innerHTML = `
-                <h2 class="detail-title">Transaction details</h2>
-                <p class="detail-id mono">${tx.hash || "Unknown hash"}</p>
+/* ========== TRANSACTION DETAIL ========== */
+async function renderTxDetail(tx) {
+    const content = document.getElementById("detail-content");
 
-                <div class="detail-grid">
-                    <div>
-                        <span class="detail-label">Status</span>
-                        <span class="detail-value">${statusLabel}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Block</span>
-                        <span class="detail-value">${tx.block_number || "–"}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">From</span>
-                        <span class="detail-value mono">${tx.from_address || "–"}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">To</span>
-                        <span class="detail-value mono">${tx.to_address || "–"}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Value</span>
-                        <span class="detail-value">${formatNumber(displayValue)}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Gas used</span>
-                        <span class="detail-value">${formatNumber(tx.gas_used || tx.gas || 0)}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Gas price</span>
-                        <span class="detail-value">
-                            ${gasPriceGwei !== null ? formatNumber(gasPriceGwei) + " gwei" : "–"}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Timestamp</span>
-                        <span class="detail-value">
-                            ${created ? formatTimestamp(created) : "–"}
-                        </span>
-                    </div>
-                </div>
+    let displayValue =
+        tx.value_formatted !== undefined && tx.value_formatted !== null
+            ? Number(tx.value_formatted)
+            : from18(tx.value || 0);
 
-                <h3 class="detail-subtitle">Logs</h3>
-                ${renderLogsTable(logs)}
+    const gasPriceGwei = tx.gas_price ? Number(tx.gas_price) / 1e9 : null;
+    const created = tx.created_at || tx.timestamp || tx.time;
 
-                <h3 class="detail-subtitle">Internal transactions</h3>
-                ${renderInternalTxTable(internalTx)}
-            `;
-        }
+    content.innerHTML = `
+        <h2 class="detail-title">Transaction details</h2>
+        <p class="detail-id">${tx.hash}</p>
 
-        function renderLogsTable(logs) {
-            if (!logs || !logs.length) {
-                return '<p class="placeholder">No logs for this transaction.</p>';
-            }
+        <div class="detail-tabs">
+            <div class="detail-tab active" data-tab="tx-overview">Overview</div>
+            <div class="detail-tab" data-tab="tx-logs">Logs</div>
+            <div class="detail-tab" data-tab="tx-internal">Internal Tx</div>
+            <div class="detail-tab" data-tab="tx-raw">Raw JSON</div>
+        </div>
 
-            const rows = logs.slice(0, 20).map((log, idx) => {
-                const address = log.address || log.contract || "";
-                const topic0 = (log.topics && log.topics[0]) || "";
-                return `
-                    <tr>
-                        <td>${idx + 1}</td>
-                        <td class="mono">${shortenHash(address, 14)}</td>
-                        <td class="mono">${shortenHash(topic0, 18)}</td>
-                    </tr>
-                `;
-            }).join("");
+        <div id="tx-overview" class="detail-section active">
+            <div class="detail-grid">
+                <div><span class="detail-label">Status</span><span class="detail-value">${tx.status === 1 ? "Success" : "Failed"}</span></div>
+                <div><span class="detail-label">Block</span><span class="detail-value">${tx.block_number}</span></div>
+                <div><span class="detail-label">From</span><span class="detail-value mono">${tx.from_address}</span></div>
+                <div><span class="detail-label">To</span><span class="detail-value mono">${tx.to_address}</span></div>
+                <div><span class="detail-label">Value</span><span class="detail-value">${formatNumber(displayValue)}</span></div>
+                <div><span class="detail-label">Gas used</span><span class="detail-value">${formatNumber(tx.gas_used)}</span></div>
+                <div><span class="detail-label">Gas price</span><span class="detail-value">${gasPriceGwei !== null ? formatNumber(gasPriceGwei) + " gwei" : "–"}</span></div>
+                <div><span class="detail-label">Timestamp</span><span class="detail-value">${formatTimestamp(created)}</span></div>
+            </div>
+        </div>
 
-            return `
-                <div class="detail-table-wrapper">
-                    <table class="detail-table">
-                        <thead>
+        <div id="tx-logs" class="detail-section">
+            <p class="placeholder">Loading logs…</p>
+        </div>
+
+        <div id="tx-internal" class="detail-section">
+            <p class="placeholder">Loading internal transactions…</p>
+        </div>
+
+        <div id="tx-raw" class="detail-section">
+            <div class="detail-json">${JSON.stringify(tx, null, 2)}</div>
+        </div>
+    `;
+
+    initDetailTabs();
+
+    /* LOAD LOGS */
+    try {
+        const logs = await fetchJson(`/transactions/${tx.hash}/logs`);
+        const logsContainer = document.getElementById("tx-logs");
+
+        if (!logs.items?.length) {
+            logsContainer.innerHTML = `<p class="placeholder">No logs</p>`;
+        } else {
+            logsContainer.innerHTML = `
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>#</th><th>Event</th><th>Topics</th><th>Data</th></tr>
+                    </thead>
+                    <tbody>
+                        ${logs.items
+                            .map(
+                                (log, i) => `
                             <tr>
-                                <th>#</th>
-                                <th>Contract</th>
-                                <th>Topic 0</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
+                                <td>${i + 1}</td>
+                                <td>${log.decoded?.name || log.event || "Unknown"}</td>
+                                <td>${(log.topics || []).join("<br>")}</td>
+                                <td>${log.data || "–"}</td>
+                            </tr>`
+                            )
+                            .join("")}
+                    </tbody>
+                </table>
             `;
         }
+    } catch {
+        document.getElementById("tx-logs").innerHTML = `<p class="placeholder">Error loading logs</p>`;
+    }
 
-        function renderInternalTxTable(list) {
-            if (!list || !list.length) {
-                return '<p class="placeholder">No internal transactions.</p>';
-            }
+    /* LOAD INTERNAL TX */
+    try {
+        const internals = await fetchJson(`/transactions/${tx.hash}/internal-transactions`);
+        const internalContainer = document.getElementById("tx-internal");
 
-            const rows = list.slice(0, 20).map((itx, idx) => {
-                const value = from18(itx.value || 0);
-                return `
-                    <tr>
-                        <td>${idx + 1}</td>
-                        <td class="mono">${shortenHash(itx.from || itx.from_address || "", 14)}</td>
-                        <td class="mono">${shortenHash(itx.to || itx.to_address || "", 14)}</td>
-                        <td>${formatNumber(value)}</td>
-                    </tr>
-                `;
-            }).join("");
-
-            return `
-                <div class="detail-table-wrapper">
-                    <table class="detail-table">
-                        <thead>
+        if (!internals.items?.length) {
+            internalContainer.innerHTML = `<p class="placeholder">No internal transactions</p>`;
+        } else {
+            internalContainer.innerHTML = `
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>#</th><th>Type</th><th>From</th><th>To</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        ${internals.items
+                            .map(
+                                (itx, i) => `
                             <tr>
-                                <th>#</th>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
+                                <td>${i + 1}</td>
+                                <td>${itx.type || "call"}</td>
+                                <td class="mono">${itx.from}</td>
+                                <td class="mono">${itx.to}</td>
+                                <td>${formatNumber(from18(itx.value || 0))}</td>
+                            </tr>`
+                            )
+                            .join("")}
+                    </tbody>
+                </table>
             `;
         }
+    } catch {
+        document.getElementById("tx-internal").innerHTML = `<p class="placeholder">Error loading internal tx</p>`;
+    }
+}
 
-        function renderAddressDetail(addr, balances, transfers) {
-            const content = document.getElementById("detail-content");
+/* ========== WALLET DETAIL ========== */
+async function renderAddressDetail(addr) {
+    const content = document.getElementById("detail-content");
 
-            const address =
-                addr.address || addr.account || addr.wallet || addr.id || "Unknown address";
-            const balanceRaw = addr.balance || addr.value || 0;
-            const balance = from18(balanceRaw);
-            const txCount = addr.tx_count || addr.transaction_count || addr.transactions_count || "–";
-            const firstSeen = addr.first_tx_at || addr.first_seen || addr.created_at;
-            const lastSeen = addr.last_tx_at || addr.last_seen || addr.updated_at;
+    const address = addr.address || addr.account || addr.wallet;
+    const balance = from18(addr.balance || 0);
+    const txCount = addr.tx_count || "–";
+    const firstSeen = addr.first_tx_at || addr.created_at;
+    const lastSeen = addr.last_tx_at || addr.updated_at;
 
-            content.innerHTML = `
-                <h2 class="detail-title">Wallet details</h2>
-                <p class="detail-id mono">${address}</p>
+    content.innerHTML = `
+        <h2 class="detail-title">Wallet details</h2>
+        <p class="detail-id mono">${address}</p>
 
-                <div class="detail-grid">
-                    <div>
-                        <span class="detail-label">Balance</span>
-                        <span class="detail-value">${formatNumber(balance)}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Total transactions</span>
-                        <span class="detail-value">${txCount}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">First seen</span>
-                        <span class="detail-value">
-                            ${firstSeen ? formatTimestamp(firstSeen) : "–"}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Last activity</span>
-                        <span class="detail-value">
-                            ${lastSeen ? formatTimestamp(lastSeen) : "–"}
-                        </span>
-                    </div>
-                </div>
+        <div class="detail-tabs">
+            <div class="detail-tab active" data-tab="addr-overview">Overview</div>
+            <div class="detail-tab" data-tab="addr-balances">Balances</div>
+            <div class="detail-tab" data-tab="addr-transfers">Token Transfers</div>
+            <div class="detail-tab" data-tab="addr-raw">Raw JSON</div>
+        </div>
 
-                <h3 class="detail-subtitle">Token balances</h3>
-                ${renderTokenBalancesTable(balances)}
+        <div id="addr-overview" class="detail-section active">
+            <div class="detail-grid">
+                <div><span class="detail-label">Balance</span><span class="detail-value">${formatNumber(balance)}</span></div>
+                <div><span class="detail-label">Total transactions</span><span class="detail-value">${txCount}</span></div>
+                <div><span class="detail-label">First seen</span><span class="detail-value">${formatTimestamp(firstSeen)}</span></div>
+                <div><span class="detail-label">Last activity</span><span class="detail-value">${formatTimestamp(lastSeen)}</span></div>
+            </div>
+        </div>
 
-                <h3 class="detail-subtitle">Recent token transfers</h3>
-                ${renderTokenTransfersTable(transfers)}
-            `;
-        }
+        <div id="addr-balances" class="detail-section">
+            <p class="placeholder">Loading token balances…</p>
+        </div>
 
-        function renderTokenBalancesTable(balances) {
-            const items = balances && (balances.items || balances) || [];
-            if (!items.length) {
-                return '<p class="placeholder">No token balances found.</p>';
-            }
+        <div id="addr-transfers" class="detail-section">
+            <p class="placeholder">Loading token transfers…</p>
+        </div>
 
-            const rows = items.slice(0, 20).map((row, idx) => {
-                const token = row.token || row;
-                const symbol = token.symbol || token.ticker || "–";
-                const name = token.name || "–";
-                const rawBalance = row.balance || row.value || token.balance || 0;
-                const decimals = token.decimals || 18;
-                let human;
-                try {
-                    const n = BigInt(rawBalance);
-                    const factor = BigInt(10) ** BigInt(decimals);
-                    const whole = Number(n / factor);
-                    const dec = Number(n % factor) / Math.pow(10, decimals);
-                    human = whole + dec;
-                } catch {
-                    human = Number(rawBalance) / Math.pow(10, decimals);
-                }
+        <div id="addr-raw" class="detail-section">
+            <div class="detail-json">${JSON.stringify(addr, null, 2)}</div>
+        </div>
+    `;
 
-                return `
-                    <tr>
-                        <td>${idx + 1}</td>
-                        <td>${name}</td>
-                        <td>${symbol}</td>
-                        <td>${formatNumber(human)}</td>
-                    </tr>
-                `;
-            }).join("");
+    initDetailTabs();
 
-            return `
-                <div class="detail-table-wrapper">
-                    <table class="detail-table">
-                        <thead>
+    /* LOAD TOKEN BALANCES */
+    try {
+        const balances = await fetchJson(`/addresses/${address}/token-balances`);
+        const balDiv = document.getElementById("addr-balances");
+
+        if (!balances.items?.length) {
+            balDiv.innerHTML = `<p class="placeholder">No tokens</p>`;
+        } else {
+            balDiv.innerHTML = `
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>Token</th><th>Symbol</th><th>Balance</th></tr>
+                    </thead>
+                    <tbody>
+                        ${balances.items
+                            .map(
+                                t => `
                             <tr>
-                                <th>#</th>
-                                <th>Token</th>
-                                <th>Symbol</th>
-                                <th>Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
+                                <td>${t.name || "Unknown"}</td>
+                                <td>${t.symbol || "?"}</td>
+                                <td>${formatNumber(from18(t.balance || 0))}</td>
+                            </tr>`
+                            )
+                            .join("")}
+                    </tbody>
+                </table>
             `;
         }
+    } catch {
+        document.getElementById("addr-balances").innerHTML = `<p class="placeholder">Error loading balances</p>`;
+    }
 
-        function renderTokenTransfersTable(transfers) {
-            const items = transfers && (transfers.items || transfers) || [];
-            if (!items.length) {
-                return '<p class="placeholder">No token transfers found.</p>';
-            }
+    /* LOAD TOKEN TRANSFERS */
+    try {
+        const transfers = await fetchJson(`/addresses/${address}/token-transfers`);
+        const trDiv = document.getElementById("addr-transfers");
 
-            const rows = items.slice(0, 20).map((t, idx) => {
-                const token = t.token || {};
-                const sym = token.symbol || "–";
-                const rawVal = t.value || t.amount || 0;
-                const decimals = token.decimals || 18;
-                let human;
-                try {
-                    const n = BigInt(rawVal);
-                    const factor = BigInt(10) ** BigInt(decimals);
-                    const whole = Number(n / factor);
-                    const dec = Number(n % factor) / Math.pow(10, decimals);
-                    human = whole + dec;
-                } catch {
-                    human = Number(rawVal) / Math.pow(10, decimals);
-                }
-
-                const ts = t.timestamp || t.created_at;
-
-                return `
-                    <tr>
-                        <td>${idx + 1}</td>
-                        <td class="mono">${shortenHash(t.from_address || t.from || "", 14)}</td>
-                        <td class="mono">${shortenHash(t.to_address || t.to || "", 14)}</td>
-                        <td>${formatNumber(human)} ${sym}</td>
-                        <td>${formatTimestamp(ts)}</td>
-                    </tr>
-                `;
-            }).join("");
-
-            return `
-                <div class="detail-table-wrapper">
-                    <table class="detail-table">
-                        <thead>
+        if (!transfers.items?.length) {
+            trDiv.innerHTML = `<p class="placeholder">No token transfers</p>`;
+        } else {
+            trDiv.innerHTML = `
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>Hash</th><th>From</th><th>To</th><th>Token</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        ${transfers.items
+                            .map(
+                                t => `
                             <tr>
-                                <th>#</th>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Amount</th>
-                                <th>Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
+                                <td class="mono">${shortenHash(t.tx_hash)}</td>
+                                <td class="mono">${shortenHash(t.from)}</td>
+                                <td class="mono">${shortenHash(t.to)}</td>
+                                <td>${t.token_symbol || "?"}</td>
+                                <td>${formatNumber(from18(t.value || 0))}</td>
+                            </tr>`
+                            )
+                            .join("")}
+                    </tbody>
+                </table>
             `;
         }
-
-        function renderBlockDetail(block) {
-            const content = document.getElementById("detail-content");
-
-            const number = block.number || block.block_number;
-            const hash = block.hash || block.block_hash;
-            const parent = block.parent_hash;
-            const miner = block.miner;
-            const gasUsed = block.gas_used || block.gasUsed;
-            const gasLimit = block.gas_limit || block.gasLimit;
-            const txCount = block.transaction_count || block.txs || block.tx_count;
-            const ts = block.timestamp;
-
-            content.innerHTML = `
-                <h2 class="detail-title">Block details</h2>
-                <p class="detail-id mono">Block #${number || "–"}</p>
-
-                <div class="detail-grid">
-                    <div>
-                        <span class="detail-label">Block hash</span>
-                        <span class="detail-value mono">${hash || "–"}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Parent hash</span>
-                        <span class="detail-value mono">
-                            ${parent ? shortenHash(parent, 18) : "–"}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Miner</span>
-                        <span class="detail-value mono">${miner || "–"}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Tx count</span>
-                        <span class="detail-value">${formatNumber(txCount || 0)}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Gas used</span>
-                        <span class="detail-value">${formatNumber(gasUsed || 0)}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Gas limit</span>
-                        <span class="detail-value">${formatNumber(gasLimit || 0)}</span>
-                    </div>
-                    <div>
-                        <span class="detail-label">Timestamp</span>
-                        <span class="detail-value">${formatTimestamp(ts)}</span>
-                    </div>
-                </div>
-            `;
-        }
+    } catch {
+        document.getElementById("addr-transfers").innerHTML = `<p class="placeholder">Error loading token transfers</p>`;
+    }
+}
 
         async function initDashboard() {
             await Promise.all([
                 loadStats(),
                 loadCharts(),
-                loadLatestBlocks(),
                 loadLatestTransactions(),
                 loadTopAccounts()
             ]);
