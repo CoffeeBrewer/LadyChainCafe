@@ -14,7 +14,7 @@
     <header class="top-bar">
         <div class="logo-area">
             <div class="logo-circle">☕</div>
-            <div classlogo-text>
+            <div class="logo-text">
                 <span class="logo-main">Café Chain</span>
                 <span class="logo-sub">Powered by LadyScan</span>
             </div>
@@ -149,13 +149,20 @@
     <script>
         const API_BASE = "https://ladyscan.us/api/v2";
 
+        // Format number with max 2 decimals, no unnecessary .00
         function formatNumber(value) {
-            if (value === null || value === undefined) return "–";
-            try {
-                return Number(value).toLocaleString("en-US");
-            } catch {
-                return String(value);
+            if (
+                value === null ||
+                value === undefined ||
+                value === "" ||
+                isNaN(value)
+            ) {
+                return "–";
             }
+
+            const num = Number(value);
+            // round to 2 decimals, then strip trailing .00, then add thousands separators
+            return Number(num.toFixed(2)).toLocaleString("en-US");
         }
 
         // Convert 18-decimal on-chain values (wei-style) into a normal JS number
@@ -284,7 +291,7 @@
             }
         }
 
-        // === LATEST TRANSACTIONS: DIVIDE value/amount BY 1e18 ===
+        // === LATEST TRANSACTIONS: DIVIDE value/amount BY 1e18 AND FORMAT ===
         async function loadLatestTransactions() {
             try {
                 const data = await fetchJson("/main-page/transactions");
@@ -329,7 +336,7 @@
             }
         }
 
-        // === TOP ACCOUNTS: DIVIDE balance BY 1e18 ===
+        // === TOP ACCOUNTS: DIVIDE balance BY 1e18 AND FORMAT ===
         async function loadTopAccounts() {
             try {
                 const data = await fetchJson("/stats/top-accounts");
