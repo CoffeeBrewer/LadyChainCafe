@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Café Blockchain Dashboard</title>
     <link rel="stylesheet" href="style.css" />
-    <!-- Chart.js voor de grafieken -->
+    <!-- Chart.js for charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -13,7 +13,7 @@
 
     <header class="top-bar">
         <div class="logo-area">
-            <div class="logo-circle">☕️</div>
+            <div class="logo-circle">☕</div>
             <div class="logo-text">
                 <span class="logo-main">Café Chain</span>
                 <span class="logo-sub">Powered by LadyScan</span>
@@ -28,10 +28,10 @@
     <main class="dashboard-container">
         <section class="hero">
             <div>
-                <h1>Welkom in het Blockchain Café</h1>
+                <h1>Welcome to the Blockchain Café</h1>
                 <p class="hero-subtitle">
-                    Pak een kop koffie en bekijk de groei van je chain:
-                    blokken, wallets, transacties en meer – alles live.
+                    Grab a coffee and watch your chain grow:
+                    blocks, wallets, transactions and more – all in real time.
                 </p>
             </div>
             <div class="hero-badge">
@@ -45,9 +45,9 @@
             <article class="card">
                 <div class="card-header">
                     <span class="card-icon">📦</span>
-                    <h2>Blokken</h2>
+                    <h2>Blocks</h2>
                 </div>
-                <p class="card-label">Totaal aantal blokken</p>
+                <p class="card-label">Total number of blocks</p>
                 <p id="block-count" class="card-value">–</p>
             </article>
 
@@ -56,27 +56,27 @@
                     <span class="card-icon">👛</span>
                     <h2>Wallets</h2>
                 </div>
-                <p class="card-label">Unieke adressen</p>
+                <p class="card-label">Unique addresses</p>
                 <p id="wallet-count" class="card-value">–</p>
             </article>
 
             <article class="card">
                 <div class="card-header">
                     <span class="card-icon">💸</span>
-                    <h2>Transacties</h2>
+                    <h2>Transactions</h2>
                 </div>
-                <p class="card-label">Totaal aantal transacties</p>
+                <p class="card-label">Total number of transactions</p>
                 <p id="transaction-count" class="card-value">–</p>
             </article>
         </section>
 
-        <!-- Grafiek: groei van transacties per dag -->
+        <!-- Chart: daily growth -->
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Dagelijkse groei</h2>
+                    <h2>Daily growth</h2>
                     <p class="panel-subtitle">
-                        Aantal transacties per dag – laat zien hoe levendig jouw café-chain is.
+                        Transactions per day – see how lively your café chain is.
                     </p>
                 </div>
             </div>
@@ -86,13 +86,13 @@
         </section>
 
         <section class="two-column">
-            <!-- Laatste transacties -->
+            <!-- Latest transactions -->
             <section class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Laatste transacties</h2>
+                        <h2>Latest transactions</h2>
                         <p class="panel-subtitle">
-                            De meest recente bewegingen in de chain.
+                            The most recent movements on the chain.
                         </p>
                     </div>
                 </div>
@@ -101,26 +101,26 @@
                         <thead>
                             <tr>
                                 <th>Hash</th>
-                                <th>Van</th>
-                                <th>Naar</th>
-                                <th>Waarde</th>
-                                <th>Tijd</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Value</th>
+                                <th>Time</th>
                             </tr>
                         </thead>
                         <tbody id="latest-transactions-body">
-                            <tr><td colspan="5" class="placeholder">Laden…</td></tr>
+                            <tr><td colspan="5" class="placeholder">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Grootste wallets -->
+            <!-- Richest wallets -->
             <section class="panel">
                 <div class="panel-header">
                     <div>
-                        <h2>Grootste wallets</h2>
+                        <h2>Richest wallets</h2>
                         <p class="panel-subtitle">
-                            De rijkste accounts aan de bar.
+                            The biggest accounts at the bar.
                         </p>
                     </div>
                 </div>
@@ -129,12 +129,12 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Adres</th>
-                                <th>Saldo</th>
+                                <th>Address</th>
+                                <th>Balance</th>
                             </tr>
                         </thead>
                         <tbody id="top-accounts-body">
-                            <tr><td colspan="3" class="placeholder">Laden…</td></tr>
+                            <tr><td colspan="3" class="placeholder">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -143,7 +143,7 @@
     </main>
 
     <footer class="footer">
-        Gemaakt met ☕️ &amp; 💻 – live data van <code>ladyscan.us</code>
+        Brewed with ☕ &amp; 💻 – live data from <code>ladyscan.us</code>
     </footer>
 
     <script>
@@ -152,7 +152,7 @@
         function formatNumber(value) {
             if (value === null || value === undefined) return "–";
             try {
-                return Number(value).toLocaleString("nl-NL");
+                return Number(value).toLocaleString("en-US");
             } catch {
                 return String(value);
             }
@@ -168,14 +168,14 @@
             if (!ts) return "–";
             const d = new Date(ts);
             if (isNaN(d.getTime())) return ts;
-            return d.toLocaleString("nl-NL");
+            return d.toLocaleString("en-GB");
         }
 
         async function fetchJson(path, params = "") {
             const url = API_BASE + path + params;
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error("API error " + response.status + " bij " + url);
+                throw new Error("API error " + response.status + " at " + url);
             }
             return response.json();
         }
@@ -184,20 +184,18 @@
             try {
                 const data = await fetchJson("/stats");
 
-                // 👉 HIER: controleer even in de browser-console hoe 'data' eruitziet
                 console.log("Stats response:", data);
 
-                // Deze velden zijn een aanname. Pas ze aan als de echte keys anders heten:
-                const blockCount = data.blocks  data.block_count  data.latest_block || data.blockNumber;
-                const addressCount = data.addresses  data.address_count  data.wallets;
-                const txCount = data.transactions  data.tx_count  data.total_transactions;
+                const blockCount = data.blocks || data.block_count || data.latest_block || data.blockNumber;
+                const addressCount = data.addresses || data.address_count || data.wallets;
+                const txCount = data.transactions || data.tx_count || data.total_transactions;
 
                 document.getElementById("block-count").innerText = formatNumber(blockCount);
                 document.getElementById("wallet-count").innerText = formatNumber(addressCount);
                 document.getElementById("transaction-count").innerText = formatNumber(txCount);
 
                 document.getElementById("last-updated").innerText =
-                    "Bijgewerkt: " + new Date().toLocaleTimeString("nl-NL");
+                    "Updated: " + new Date().toLocaleTimeString("en-GB");
             } catch (err) {
                 console.error(err);
             }
@@ -207,16 +205,12 @@
             try {
                 const data = await fetchJson("/stats/charts");
 
-                // 👉 Even in de console kijken:
                 console.log("Charts response:", data);
 
-                // Voorbeeld-aanname:
-                // data.daily_transactions = [{ date: "2025-11-15", value: 123 }, ...]
-                const daily = data.daily_transactions  data.tx_per_day  data.transactions || [];
+                const daily = data.daily_transactions || data.tx_per_day || data.transactions || [];
 
-                const labels = daily.map((item) => item.date  item.day  item.
-                timestamp || "");
-                const values = daily.map((item) => item.value  item.tx_count  item.transactions || 0);
+                const labels = daily.map((item) => item.date || item.day || item.timestamp || "");
+                const values = daily.map((item) => item.value || item.tx_count || item.transactions || 0);
 
                 const ctx = document.getElementById("growthChart").getContext("2d");
                 new Chart(ctx, {
@@ -225,7 +219,7 @@
                         labels,
                         datasets: [
                             {
-                                label: "Transacties per dag",
+                                label: "Transactions per day",
                                 data: values,
                                 borderWidth: 2,
                                 tension: 0.25,
@@ -270,34 +264,35 @@
                 const tbody = document.getElementById("latest-transactions-body");
                 tbody.innerHTML = "";
 
-                const items = data.items  data.transactions  data || [];
+                const items = data.items || data.transactions || data || [];
                 if (!items.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="placeholder">Geen transacties gevonden</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="placeholder">No transactions found</td></tr>';
                     return;
                 }
 
                 items.slice(0, 10).forEach((tx) => {
                     const tr = document.createElement("tr");
 
-                    const hash = tx.hash  tx.tx_hash  tx.id;
-                    const from = tx.from  tx.sender  tx.from_address;
-                    const to = tx.to  tx.receiver  tx.to_address;
-                    const value = tx.value  tx.amount  tx.value_formatted;
-                    const timestamp = tx.timestamp  tx.time  tx.block_time;
+                    const hash = tx.hash || tx.tx_hash || tx.id;
+                    const from = tx.from || tx.sender || tx.from_address;
+                    const to = tx.to || tx.receiver || tx.to_address;
+                    const value = tx.value || tx.amount || tx.value_formatted;
+                    const timestamp = tx.timestamp || tx.time || tx.block_time;
 
-                    tr.innerHTML =
-                        <td title="${hash || ""}">${shortenHash(hash)}</td>;
-                        <td title="${from  ""}">${shortenHash(from  "")}</td>;
-                        <td title="${to  ""}">${shortenHash(to  "")}</td>;
-                        <td>${value !== undefined ? value : "–"}</td>;
-                        <td>${formatTimestamp(timestamp)}</td>;
+                    tr.innerHTML = `
+                        <td title="${hash || ""}">${shortenHash(hash)}</td>
+                        <td title="${from || ""}">${shortenHash(from || "")}</td>
+                        <td title="${to || ""}">${shortenHash(to || "")}</td>
+                        <td>${value !== undefined ? value : "–"}</td>
+                        <td>${formatTimestamp(timestamp)}</td>
+                    `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
                 console.error(err);
                 const tbody = document.getElementById("latest-transactions-body");
                 tbody.innerHTML =
-                    '<tr><td colspan="5" class="placeholder">Fout bij laden van transacties</td></tr>';
+                    '<tr><td colspan="5" class="placeholder">Error while loading transactions</td></tr>';
             }
         }
 
@@ -309,21 +304,20 @@
                 const tbody = document.getElementById("top-accounts-body");
                 tbody.innerHTML = "";
 
-                const items = data.items  data.accounts  data || [];
+                const items = data.items || data.accounts || data || [];
                 if (!items.length) {
-                    tbody.
-                    innerHTML = '<tr><td colspan="3" class="placeholder">Geen data gevonden</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="3" class="placeholder">No data found</td></tr>';
                     return;
                 }
 
                 items.slice(0, 10).forEach((acc, index) => {
-                    const address = acc.address  acc.account  acc.wallet;
-                    const balance = acc.balance  acc.value  acc.amount;
+                    const address = acc.address || acc.account || acc.wallet;
+                    const balance = acc.balance || acc.value || acc.amount;
 
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td>${index + 1}</td>
-                        <td title="${address  ""}">${shortenHash(address  "", 14)}</td>
+                        <td title="${address || ""}">${shortenHash(address || "", 14)}</td>
                         <td>${balance !== undefined ? balance : "–"}</td>
                     `;
                     tbody.appendChild(tr);
@@ -332,7 +326,7 @@
                 console.error(err);
                 const tbody = document.getElementById("top-accounts-body");
                 tbody.innerHTML =
-                    '<tr><td colspan="3" class="placeholder">Fout bij laden van grootste wallets</td></tr>';
+                    '<tr><td colspan="3" class="placeholder">Error while loading richest wallets</td></tr>';
             }
         }
 
