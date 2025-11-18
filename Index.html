@@ -439,59 +439,86 @@
         }
 
         // ========== LATEST TRANSACTIONS ==========
-        async function loadLatestTransactions() {
-            try {
-                const data = await fetchJson("/main-page/transactions");
-                const tbody = document.getElementById("latest-transactions-body");
-                tbody.innerHTML = "";
+async function loadLatestTransactions() {
+    try {
+        const data = await fetchJson("/main-page/transactions");
+        console.log("Latest transactions API raw response:", data);
 
-                const items = data.items || [];
-                if (!items.length) {
-                    tbody.innerHTML =
-                        '<tr><td colspan="5" class="placeholder">No transactions found</td></tr>';
-                    return;
-                }
+        const tbody = document.getElementById("latest-transactions-body");
+        tbody.innerHTML = "";
 
-                items.slice(0, 10).forEach((tx) => {
-                    let displayValue;
-                    if (tx.value_formatted !== undefined && tx.value_formatted !== null) {
-                        displayValue = Number(tx.value_formatted);
-                    } else {
-                        displayValue = from18(tx.value || 0);
-                    }
+        // 👉 Probeer alle mogelijke vormen:
+        // - data.items (object met items)
+        // - data.transactions
+        // - data.data
+        // - of data is direct een array
+        let items;
 
-                    const timestampRaw =
-                        tx.created_at || tx.updated_at || tx.timestamp || tx.time || tx.block_time;
-
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td title="${tx.hash}">
-                            <button class="link-button" onclick="openTxDetail('${tx.hash}')">
-                                ${shortenHash(tx.hash)}
-                            </button>
-                        </td>
-                        <td title="${tx.from_address}">
-                            <button class="link-button" onclick="openAddressDetail('${tx.from_address}')">
-                                ${shortenHash(tx.from_address)}
-                            </button>
-                        </td>
-                        <td title="${tx.to_address}">
-                            <button class="link-button" onclick="openAddressDetail('${tx.to_address}')">
-                                ${shortenHash(tx.to_address)}
-                            </button>
-                        </td>
-                        <td>${formatNumber(displayValue)}</td>
-                        <td>${formatTimestamp(timestampRaw)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error("loadLatestTransactions error:", err);
-                const tbody = document.getElementById("latest-transactions-body");
-                tbody.innerHTML =
-                    '<tr><td colspan="5" class="placeholder">Error while loading transactions</td></tr>';
-            }
+        if (Array.isArray(data)) {
+            items = data;
+        } else {
+            items =
+                data.items ||
+                data.transactions ||
+                data.data ||
+                [];
         }
+
+        if (!items || !items.length) {
+            tbody.innerHTML =
+                '<tr><td colspan="5" class="placeholder">No transactions found</td></tr>';
+            return;
+        }
+
+        items.slice(0, 10).forEach((tx) => {
+            // Probeer verschillende velden; jouw API gebruikt in elk geval deze:
+            const hash = tx.hash || tx.tx_hash || "";
+            const from = tx.from_address || tx.from || "";
+            const to = tx.to_address || tx.to || "";
+
+            let displayValue;
+            if (tx.value_formatted !== undefined && tx.value_formatted !== null) {
+                displayValue = Number(tx.value_formatted);
+            } else {
+                displayValue = from18(tx.value || tx.amount || 0);
+            }
+
+            const timestampRaw =
+                tx.created_at ||
+                tx.updated_at ||
+                tx.timestamp ||
+                tx.time ||
+                tx.block_time;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td title="${hash}">
+                    <button class="link-button" onclick="openTxDetail('${hash}')">
+                        ${shortenHash(hash)}
+                    </button>
+                </td>
+                <td title="${from}">
+                    <button class="link-button" onclick="openAddressDetail('${from}')">
+                        ${shortenHash(from)}
+                    </button>
+                </td>
+                <td title="${to}">
+                    <button class="link-button" onclick="openAddressDetail('${to}')">
+                        ${shortenHash(to)}
+                    </button>
+                </td>
+                <td>${formatNumber(displayValue)}</td>
+                <td>${formatTimestamp(timestampRaw)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error("loadLatestTransactions error:", err);
+        const tbody = document.getElementById("latest-transactions-body");
+        tbody.innerHTML =
+            '<tr><td colspan="5" class="placeholder">Error while loading transactions</td></tr>';
+    }
+}
 
         // ========== TOP ACCOUNTS ==========
         async function loadTopAccounts() {
