@@ -131,7 +131,7 @@
             </div>
         </section>
 
-        <!-- NEW WALLETS PER DAY -->
+        <!-- NEW WALLETS PER DAY (optional, only if API provides it) -->
         <section class="panel fade-in">
             <div class="panel-header">
                 <div>
@@ -279,7 +279,7 @@
             return response.json();
         }
 
-        // MAIN STATS + METRICS
+        // ========== MAIN STATS + METRICS ==========
         async function loadStats() {
             try {
                 const data = await fetchJson("/stats");
@@ -302,7 +302,7 @@
                 clearSkeleton("transaction-count");
                 clearSkeleton("transaction-today");
 
-                const tps = txToday / 86400; // simple approximation
+                const tps = txToday / 86400;
                 document.getElementById("metric-avg-block-time").innerText =
                     avgBlockTime ? formatNumber(avgBlockTime) + " s" : "–";
                 document.getElementById("metric-tps").innerText = formatNumber(tps);
@@ -326,11 +326,12 @@
             }
         }
 
-        // DAILY TX CHART + GAS + NEW WALLETS CHART
+        // ========== CHARTS (TX + NEW WALLETS + GAS) ==========
         async function loadCharts() {
             try {
                 const data = await fetchJson("/stats/charts");
 
+                // Daily tx
                 const daily = data.daily_transactions || [];
                 daily.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -368,7 +369,7 @@
                     }
                 });
 
-                // Gas data (from charts response)
+                // Gas bands
                 if (data.low_gas !== undefined) {
                     const low = formatNumber(data.low_gas) + " gwei";
                     const avg = formatNumber(data.avg_gas_price || data.avg_gas) + " gwei";
@@ -387,7 +388,7 @@
                     clearSkeleton(elHigh);
                 }
 
-                // New wallets per day – this depends on what your backend exposes
+                // New wallets per day (if backend provides it)
                 const walletsArray =
                     data.daily_new_addresses ||
                     data.daily_wallets ||
@@ -437,7 +438,7 @@
             }
         }
 
-        // LATEST TRANSACTIONS
+        // ========== LATEST TRANSACTIONS ==========
         async function loadLatestTransactions() {
             try {
                 const data = await fetchJson("/main-page/transactions");
@@ -492,7 +493,7 @@
             }
         }
 
-        // RICHEST WALLETS
+        // ========== TOP ACCOUNTS ==========
         async function loadTopAccounts() {
             try {
                 const data = await fetchJson("/stats/top-accounts");
@@ -530,7 +531,7 @@
             }
         }
 
-        // DETAIL PANEL LOGIC
+        // ========== DETAIL OVERLAY HELPERS ==========
         function openTxDetail(hash) {
             openDetail("transaction", hash);
         }
@@ -548,10 +549,10 @@
             try {
                 if (type === "transaction") {
                     const tx = await fetchJson(`/transactions/${id}`);
-                    renderTxDetail(tx);
+                    await renderTxDetail(tx);
                 } else {
                     const addr = await fetchJson(`/addresses/${id}`);
-                    renderAddressDetail(addr);
+                    await renderAddressDetail(addr);
                 }
             } catch (err) {
                 console.error("openDetail error:", err);
@@ -564,255 +565,304 @@
             const overlay = document.getElementById("detail-overlay");
             overlay.classList.add("hidden");
         }
-/* ========== TAB HANDLING ========== */
-function initDetailTabs() {
-    const tabs = document.querySelectorAll(".detail-tab");
 
-    tabs.forEach(tab => {
-        tab.addEventListener("click", () => {
-            const target = tab.dataset.tab;
-
-            // Deactivate all
-            tabs.forEach(t => t.classList.remove("active"));
-            document.querySelectorAll(".detail-section").forEach(sec => sec.classList.remove("active"));
-
-            // Activate clicked
-            tab.classList.add("active");
-            document.getElementById(target).classList.add("active");
-        });
-    });
-}
-
-/* ========== TRANSACTION DETAIL ========== */
-async function renderTxDetail(tx) {
-    const content = document.getElementById("detail-content");
-
-    let displayValue =
-        tx.value_formatted !== undefined && tx.value_formatted !== null
-            ? Number(tx.value_formatted)
-            : from18(tx.value || 0);
-
-    const gasPriceGwei = tx.gas_price ? Number(tx.gas_price) / 1e9 : null;
-    const created = tx.created_at || tx.timestamp || tx.time;
-
-    content.innerHTML = `
-        <h2 class="detail-title">Transaction details</h2>
-        <p class="detail-id">${tx.hash}</p>
-
-        <div class="detail-tabs">
-            <div class="detail-tab active" data-tab="tx-overview">Overview</div>
-            <div class="detail-tab" data-tab="tx-logs">Logs</div>
-            <div class="detail-tab" data-tab="tx-internal">Internal Tx</div>
-            <div class="detail-tab" data-tab="tx-raw">Raw JSON</div>
-        </div>
-
-        <div id="tx-overview" class="detail-section active">
-            <div class="detail-grid">
-                <div><span class="detail-label">Status</span><span class="detail-value">${tx.status === 1 ? "Success" : "Failed"}</span></div>
-                <div><span class="detail-label">Block</span><span class="detail-value">${tx.block_number}</span></div>
-                <div><span class="detail-label">From</span><span class="detail-value mono">${tx.from_address}</span></div>
-                <div><span class="detail-label">To</span><span class="detail-value mono">${tx.to_address}</span></div>
-                <div><span class="detail-label">Value</span><span class="detail-value">${formatNumber(displayValue)}</span></div>
-                <div><span class="detail-label">Gas used</span><span class="detail-value">${formatNumber(tx.gas_used)}</span></div>
-                <div><span class="detail-label">Gas price</span><span class="detail-value">${gasPriceGwei !== null ? formatNumber(gasPriceGwei) + " gwei" : "–"}</span></div>
-                <div><span class="detail-label">Timestamp</span><span class="detail-value">${formatTimestamp(created)}</span></div>
-            </div>
-        </div>
-
-        <div id="tx-logs" class="detail-section">
-            <p class="placeholder">Loading logs…</p>
-        </div>
-
-        <div id="tx-internal" class="detail-section">
-            <p class="placeholder">Loading internal transactions…</p>
-        </div>
-
-        <div id="tx-raw" class="detail-section">
-            <div class="detail-json">${JSON.stringify(tx, null, 2)}</div>
-        </div>
-    `;
-
-    initDetailTabs();
-
-    /* LOAD LOGS */
-    try {
-        const logs = await fetchJson(`/transactions/${tx.hash}/logs`);
-        const logsContainer = document.getElementById("tx-logs");
-
-        if (!logs.items?.length) {
-            logsContainer.innerHTML = `<p class="placeholder">No logs</p>`;
-        } else {
-            logsContainer.innerHTML = `
-                <table class="detail-table">
-                    <thead>
-                        <tr><th>#</th><th>Event</th><th>Topics</th><th>Data</th></tr>
-                    </thead>
-                    <tbody>
-                        ${logs.items
-                            .map(
-                                (log, i) => `
-                            <tr>
-                                <td>${i + 1}</td>
-                                <td>${log.decoded?.name || log.event || "Unknown"}</td>
-                                <td>${(log.topics || []).join("<br>")}</td>
-                                <td>${log.data || "–"}</td>
-                            </tr>`
-                            )
-                            .join("")}
-                    </tbody>
-                </table>
-            `;
+        function initDetailTabs() {
+            const tabs = document.querySelectorAll(".detail-tab");
+            tabs.forEach(tab => {
+                tab.addEventListener("click", () => {
+                    const target = tab.dataset.tab;
+                    tabs.forEach(t => t.classList.remove("active"));
+                    document.querySelectorAll(".detail-section").forEach(sec => sec.classList.remove("active"));
+                    tab.classList.add("active");
+                    document.getElementById(target).classList.add("active");
+                });
+            });
         }
-    } catch {
-        document.getElementById("tx-logs").innerHTML = `<p class="placeholder">Error loading logs</p>`;
-    }
 
-    /* LOAD INTERNAL TX */
-    try {
-        const internals = await fetchJson(`/transactions/${tx.hash}/internal-transactions`);
-        const internalContainer = document.getElementById("tx-internal");
+        // ========== TRANSACTION DETAIL RENDER ==========
+        async function renderTxDetail(tx) {
+            const content = document.getElementById("detail-content");
 
-        if (!internals.items?.length) {
-            internalContainer.innerHTML = `<p class="placeholder">No internal transactions</p>`;
-        } else {
-            internalContainer.innerHTML = `
-                <table class="detail-table">
-                    <thead>
-                        <tr><th>#</th><th>Type</th><th>From</th><th>To</th><th>Value</th></tr>
-                    </thead>
-                    <tbody>
-                        ${internals.items
-                            .map(
-                                (itx, i) => `
-                            <tr>
-                                <td>${i + 1}</td>
-                                <td>${itx.type || "call"}</td>
-                                <td class="mono">${itx.from}</td>
-                                <td class="mono">${itx.to}</td>
-                                <td>${formatNumber(from18(itx.value || 0))}</td>
-                            </tr>`
-                            )
-                            .join("")}
-                    </tbody>
-                </table>
+            let displayValue =
+                tx.value_formatted !== undefined && tx.value_formatted !== null
+                    ? Number(tx.value_formatted)
+                    : from18(tx.value || 0);
+
+            const gasPriceGwei = tx.gas_price ? Number(tx.gas_price) / 1e9 : null;
+            const created = tx.created_at || tx.timestamp || tx.time;
+
+            content.innerHTML = `
+                <h2 class="detail-title">Transaction details</h2>
+                <p class="detail-id">${tx.hash || "Unknown hash"}</p>
+
+                <div class="detail-tabs">
+                    <div class="detail-tab active" data-tab="tx-overview">Overview</div>
+                    <div class="detail-tab" data-tab="tx-logs">Logs</div>
+                    <div class="detail-tab" data-tab="tx-internal">Internal Tx</div>
+                    <div class="detail-tab" data-tab="tx-raw">Raw JSON</div>
+                </div>
+
+                <div id="tx-overview" class="detail-section active">
+                    <div class="detail-grid">
+                        <div>
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value">
+                                ${tx.status === 1 || tx.success ? "Success" : "Failed / Unknown"}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Block</span>
+                            <span class="detail-value">${tx.block_number || "–"}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">From</span>
+                            <span class="detail-value mono">${tx.from_address || "–"}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">To</span>
+                            <span class="detail-value mono">${tx.to_address || "–"}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Value</span>
+                            <span class="detail-value">${formatNumber(displayValue)}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Gas used</span>
+                            <span class="detail-value">${formatNumber(tx.gas_used || tx.gas || 0)}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Gas price</span>
+                            <span class="detail-value">
+                                ${gasPriceGwei !== null ? formatNumber(gasPriceGwei) + " gwei" : "–"}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Timestamp</span>
+                            <span class="detail-value">
+                                ${created ? formatTimestamp(created) : "–"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tx-logs" class="detail-section">
+                    <p class="placeholder">Loading logs…</p>
+                </div>
+
+                <div id="tx-internal" class="detail-section">
+                    <p class="placeholder">Loading internal transactions…</p>
+                </div>
+
+                <div id="tx-raw" class="detail-section">
+                    <div class="detail-json">${JSON.stringify(tx, null, 2)}</div>
+                </div>
             `;
+
+            initDetailTabs();
+
+            // Logs
+            try {
+                const logs = await fetchJson(`/transactions/${tx.hash}/logs`);
+                const logsContainer = document.getElementById("tx-logs");
+
+                if (!logs.items || !logs.items.length) {
+                    logsContainer.innerHTML = `<p class="placeholder">No logs</p>`;
+                } else {
+                    logsContainer.innerHTML = `
+                        <table class="detail-table">
+                            <thead>
+                                <tr><th>#</th><th>Event</th><th>Topics</th><th>Data</th></tr>
+                            </thead>
+                            <tbody>
+                                ${logs.items
+                                    .map(
+                                        (log, i) => `
+                                    <tr>
+                                        <td>${i + 1}</td>
+                                        <td>${(log.decoded && log.decoded.name) || log.event || "Unknown"}</td>
+                                        <td>${(log.topics || []).join("<br>")}</td>
+                                        <td>${log.data || "–"}</td>
+                                    </tr>`
+                                    )
+                                    .join("")}
+                            </tbody>
+                        </table>
+                    `;
+                }
+            } catch (err) {
+                console.error("logs error:", err);
+                document.getElementById("tx-logs").innerHTML = `<p class="placeholder">Error loading logs</p>`;
+            }
+
+            // Internal tx
+            try {
+                const internals = await fetchJson(`/transactions/${tx.hash}/internal-transactions`);
+                const internalContainer = document.getElementById("tx-internal");
+
+                if (!internals.items || !internals.items.length) {
+                    internalContainer.innerHTML = `<p class="placeholder">No internal transactions</p>`;
+                } else {
+                    internalContainer.innerHTML = `
+                        <table class="detail-table">
+                            <thead>
+                                <tr><th>#</th><th>Type</th><th>From</th><th>To</th><th>Value</th></tr>
+                            </thead>
+                            <tbody>
+                                ${internals.items
+                                    .map(
+                                        (itx, i) => `
+                                    <tr>
+                                        <td>${i + 1}</td>
+                                        <td>${itx.type || "call"}</td>
+                                        <td class="mono">${itx.from}</td>
+                                        <td class="mono">${itx.to}</td>
+                                        <td>${formatNumber(from18(itx.value || 0))}</td>
+                                    </tr>`
+                                    )
+                                    .join("")}
+                            </tbody>
+                        </table>
+                    `;
+                }
+            } catch (err) {
+                console.error("internal tx error:", err);
+                document.getElementById("tx-internal").innerHTML = `<p class="placeholder">Error loading internal tx</p>`;
+            }
         }
-    } catch {
-        document.getElementById("tx-internal").innerHTML = `<p class="placeholder">Error loading internal tx</p>`;
-    }
-}
 
-/* ========== WALLET DETAIL ========== */
-async function renderAddressDetail(addr) {
-    const content = document.getElementById("detail-content");
+        // ========== WALLET DETAIL RENDER ==========
+        async function renderAddressDetail(addr) {
+            const content = document.getElementById("detail-content");
 
-    const address = addr.address || addr.account || addr.wallet;
-    const balance = from18(addr.balance || 0);
-    const txCount = addr.tx_count || "–";
-    const firstSeen = addr.first_tx_at || addr.created_at;
-    const lastSeen = addr.last_tx_at || addr.updated_at;
+            const address =
+                addr.address || addr.account || addr.wallet || addr.id || "Unknown address";
+            const balanceRaw = addr.balance || addr.value || 0;
+            const balance = from18(balanceRaw);
+            const txCount = addr.tx_count || addr.transaction_count || addr.transactions_count || "–";
+            const firstSeen = addr.first_tx_at || addr.first_seen || addr.created_at;
+            const lastSeen = addr.last_tx_at || addr.last_seen || addr.updated_at;
 
-    content.innerHTML = `
-        <h2 class="detail-title">Wallet details</h2>
-        <p class="detail-id mono">${address}</p>
+            content.innerHTML = `
+                <h2 class="detail-title">Wallet details</h2>
+                <p class="detail-id mono">${address}</p>
 
-        <div class="detail-tabs">
-            <div class="detail-tab active" data-tab="addr-overview">Overview</div>
-            <div class="detail-tab" data-tab="addr-balances">Balances</div>
-            <div class="detail-tab" data-tab="addr-transfers">Token Transfers</div>
-            <div class="detail-tab" data-tab="addr-raw">Raw JSON</div>
-        </div>
+                <div class="detail-tabs">
+                    <div class="detail-tab active" data-tab="addr-overview">Overview</div>
+                    <div class="detail-tab" data-tab="addr-balances">Balances</div>
+                    <div class="detail-tab" data-tab="addr-transfers">Token Transfers</div>
+                    <div class="detail-tab" data-tab="addr-raw">Raw JSON</div>
+                </div>
 
-        <div id="addr-overview" class="detail-section active">
-            <div class="detail-grid">
-                <div><span class="detail-label">Balance</span><span class="detail-value">${formatNumber(balance)}</span></div>
-                <div><span class="detail-label">Total transactions</span><span class="detail-value">${txCount}</span></div>
-                <div><span class="detail-label">First seen</span><span class="detail-value">${formatTimestamp(firstSeen)}</span></div>
-                <div><span class="detail-label">Last activity</span><span class="detail-value">${formatTimestamp(lastSeen)}</span></div>
-            </div>
-        </div>
+                <div id="addr-overview" class="detail-section active">
+                    <div class="detail-grid">
+                        <div>
+                            <span class="detail-label">Balance</span>
+                            <span class="detail-value">${formatNumber(balance)}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Total transactions</span>
+                            <span class="detail-value">${txCount}</span>
+                        </div>
+                        <div>
+                            <span class="detail-label">First seen</span>
+                            <span class="detail-value">
+                                ${firstSeen ? formatTimestamp(firstSeen) : "–"}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="detail-label">Last activity</span>
+                            <span class="detail-value">
+                                ${lastSeen ? formatTimestamp(lastSeen) : "–"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-        <div id="addr-balances" class="detail-section">
-            <p class="placeholder">Loading token balances…</p>
-        </div>
+                <div id="addr-balances" class="detail-section">
+                    <p class="placeholder">Loading token balances…</p>
+                </div>
 
-        <div id="addr-transfers" class="detail-section">
-            <p class="placeholder">Loading token transfers…</p>
-        </div>
+                <div id="addr-transfers" class="detail-section">
+                    <p class="placeholder">Loading token transfers…</p>
+                </div>
 
-        <div id="addr-raw" class="detail-section">
-            <div class="detail-json">${JSON.stringify(addr, null, 2)}</div>
-        </div>
-    `;
-
-    initDetailTabs();
-
-    /* LOAD TOKEN BALANCES */
-    try {
-        const balances = await fetchJson(`/addresses/${address}/token-balances`);
-        const balDiv = document.getElementById("addr-balances");
-
-        if (!balances.items?.length) {
-            balDiv.innerHTML = `<p class="placeholder">No tokens</p>`;
-        } else {
-            balDiv.innerHTML = `
-                <table class="detail-table">
-                    <thead>
-                        <tr><th>Token</th><th>Symbol</th><th>Balance</th></tr>
-                    </thead>
-                    <tbody>
-                        ${balances.items
-                            .map(
-                                t => `
-                            <tr>
-                                <td>${t.name || "Unknown"}</td>
-                                <td>${t.symbol || "?"}</td>
-                                <td>${formatNumber(from18(t.balance || 0))}</td>
-                            </tr>`
-                            )
-                            .join("")}
-                    </tbody>
-                </table>
+                <div id="addr-raw" class="detail-section">
+                    <div class="detail-json">${JSON.stringify(addr, null, 2)}</div>
+                </div>
             `;
-        }
-    } catch {
-        document.getElementById("addr-balances").innerHTML = `<p class="placeholder">Error loading balances</p>`;
-    }
 
-    /* LOAD TOKEN TRANSFERS */
-    try {
-        const transfers = await fetchJson(`/addresses/${address}/token-transfers`);
-        const trDiv = document.getElementById("addr-transfers");
+            initDetailTabs();
 
-        if (!transfers.items?.length) {
-            trDiv.innerHTML = `<p class="placeholder">No token transfers</p>`;
-        } else {
-            trDiv.innerHTML = `
-                <table class="detail-table">
-                    <thead>
-                        <tr><th>Hash</th><th>From</th><th>To</th><th>Token</th><th>Value</th></tr>
-                    </thead>
-                    <tbody>
-                        ${transfers.items
-                            .map(
-                                t => `
-                            <tr>
-                                <td class="mono">${shortenHash(t.tx_hash)}</td>
-                                <td class="mono">${shortenHash(t.from)}</td>
-                                <td class="mono">${shortenHash(t.to)}</td>
-                                <td>${t.token_symbol || "?"}</td>
-                                <td>${formatNumber(from18(t.value || 0))}</td>
-                            </tr>`
-                            )
-                            .join("")}
-                    </tbody>
-                </table>
-            `;
+            // Token balances
+            try {
+                const balances = await fetchJson(`/addresses/${address}/token-balances`);
+                const balDiv = document.getElementById("addr-balances");
+
+                if (!balances.items || !balances.items.length) {
+                    balDiv.innerHTML = `<p class="placeholder">No tokens</p>`;
+                } else {
+                    balDiv.innerHTML = `
+                        <table class="detail-table">
+                            <thead>
+                                <tr><th>Token</th><th>Symbol</th><th>Balance</th></tr>
+                            </thead>
+                            <tbody>
+                                ${balances.items
+                                    .map(
+                                        t => `
+                                    <tr>
+                                        <td>${t.name || "Unknown"}</td>
+                                        <td>${t.symbol || "?"}</td>
+                                        <td>${formatNumber(from18(t.balance || 0))}</td>
+                                    </tr>`
+                                    )
+                                    .join("")}
+                            </tbody>
+                        </table>
+                    `;
+                }
+            } catch (err) {
+                console.error("balances error:", err);
+                document.getElementById("addr-balances").innerHTML =
+                    `<p class="placeholder">Error loading balances</p>`;
+            }
+
+            // Token transfers
+            try {
+                const transfers = await fetchJson(`/addresses/${address}/token-transfers`);
+                const trDiv = document.getElementById("addr-transfers");
+
+                if (!transfers.items || !transfers.items.length) {
+                    trDiv.innerHTML = `<p class="placeholder">No token transfers</p>`;
+                } else {
+                    trDiv.innerHTML = `
+                        <table class="detail-table">
+                            <thead>
+                                <tr><th>Hash</th><th>From</th><th>To</th><th>Token</th><th>Value</th></tr>
+                            </thead>
+                            <tbody>
+                                ${transfers.items
+                                    .map(
+                                        t => `
+                                    <tr>
+                                        <td class="mono">${shortenHash(t.tx_hash)}</td>
+                                        <td class="mono">${shortenHash(t.from)}</td>
+                                        <td class="mono">${shortenHash(t.to)}</td>
+                                        <td>${t.token_symbol || "?"}</td>
+                                        <td>${formatNumber(from18(t.value || 0))}</td>
+                                    </tr>`
+                                    )
+                                    .join("")}
+                            </tbody>
+                        </table>
+                    `;
+                }
+            } catch (err) {
+                console.error("transfers error:", err);
+                document.getElementById("addr-transfers").innerHTML =
+                    `<p class="placeholder">Error loading token transfers</p>`;
+            }
         }
-    } catch {
-        document.getElementById("addr-transfers").innerHTML = `<p class="placeholder">Error loading token transfers</p>`;
-    }
-}
 
         async function initDashboard() {
             await Promise.all([
