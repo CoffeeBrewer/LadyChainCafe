@@ -454,21 +454,27 @@
           return;
         }
 
-        items.slice(0, 10).forEach((acc, i) => {
-          const addr = acc.address || acc.account || acc.wallet || "";
-          const bal = from18(acc.balance || acc.value || 0);
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td title="${addr}">
-              <button class="link-button" onclick="openAddressDetail('${addr}')">
-                ${shortenHash(addr, 14)}
-              </button>
-            </td>
-            <td>${formatNumber(bal)}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+items.slice(0, 10).forEach((acc, i) => {
+  const addr = acc.address || acc.account || acc.wallet || "";
+  const bal = from18(acc.balance || acc.value || 0);
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${i + 1}</td>
+    <td title="${addr}">
+      <a
+        class="link-button"
+        href="https://ladyscan.us/address/${addr}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        ${shortenHash(addr, 14)}
+      </a>
+    </td>
+    <td>${formatNumber(bal)}</td>
+  `;
+  tbody.appendChild(tr);
+});
       } catch (e) {
         console.error("loadTopAccounts error:", e);
         const tbody = document.getElementById("top-accounts-body");
