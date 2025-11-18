@@ -594,3 +594,133 @@ tbody tr:hover {
         padding-inline: 8px;
     }
 }
+
+/* ========== DETAIL DRAWER ========== */
+
+.hidden {
+    display: none;
+}
+
+.detail-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.detail-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    pointer-events: auto;
+}
+
+.detail-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(420px, 100%);
+    height: 100%;
+    background: #0b0c12;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: -18px 0 45px rgba(0, 0, 0, 0.9);
+    padding: 18px 18px 24px;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    animation: slideInRight 0.25s ease-out;
+}
+
+.detail-close {
+    align-self: flex-end;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 999px;
+}
+
+.detail-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.detail-content {
+    margin-top: 4px;
+    overflow-y: auto;
+}
+
+.detail-title {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.detail-id {
+    font-size: 11px;
+    color: var(--text-muted);
+    word-break: break-all;
+    margin: 0 0 12px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    font-size: 12px;
+}
+
+.detail-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.detail-label {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.detail-value {
+    font-weight: 500;
+}
+
+.detail-value.mono,
+.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+}
+
+/* Link-style buttons in tables */
+
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: var(--accent-strong);
+    cursor: pointer;
+    font: inherit;
+    text-decoration: none;
+}
+
+.link-button:hover {
+    text-decoration: underline;
+}
+
+/* Slide-in animation */
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head:
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LadyChain Café Dashboard</title>
@@ -13,9 +13,6 @@
     <header class="top-bar">
         <div class="logo-area">
             <div class="logo-circle">
-                <!-- Als je een eigen logo hebt:
-                <img src="ladychain-logo.svg" alt="LadyChain Logo" class="logo-img" />
-                -->
                 <span class="logo-initials">LC</span>
             </div>
             <div class="logo-text">
@@ -104,7 +101,7 @@
             </div>
         </section>
 
-        <!-- DAILY GROWTH + GAS -->
+        <!-- DAILY GROWTH (TX) + GAS -->
         <section class="panel fade-in">
             <div class="panel-header">
                 <div>
@@ -131,6 +128,24 @@
                         <span id="gas-high" class="gas-value skeleton">–</span>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- NEW WALLETS PER DAY -->
+        <section class="panel fade-in">
+            <div class="panel-header">
+                <div>
+                    <h2>New LadyChain Wallets per Day</h2>
+                    <p class="panel-subtitle">
+                        Newly created addresses over time on LadyChain.
+                    </p>
+                </div>
+            </div>
+            <div class="panel-body">
+                <canvas id="walletsChart"></canvas>
+                <p id="walletsChart-empty" class="placeholder" style="display: none;">
+                    No wallet growth data available (yet).
+                </p>
             </div>
         </section>
 
@@ -195,6 +210,17 @@
         Brewed with ☕ & 💻 — live data from <code>ladyscan.us</code>
     </footer>
 
+    <!-- DETAIL DRAWER -->
+    <div id="detail-overlay" class="detail-overlay hidden">
+        <div class="detail-backdrop" onclick="closeDetail()"></div>
+        <aside class="detail-panel">
+            <button class="detail-close" type="button" onclick="closeDetail()">×</button>
+            <div id="detail-content" class="detail-content">
+                <!-- Filled by JS -->
+            </div>
+        </aside>
+    </div>
+
     <script>
         const API_BASE = "https://ladyscan.us/api/v2";
 
@@ -241,8 +267,8 @@
             return String(ts);
         }
 
-        function clearSkeleton(id) {
-            const el = typeof id === "string" ? document.getElementById(id) : id;
+        function clearSkeleton(idOrEl) {
+            const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
             if (el) el.classList.remove("skeleton");
         }
 
@@ -276,17 +302,16 @@
                 clearSkeleton("transaction-count");
                 clearSkeleton("transaction-today");
 
-                // Metrics
                 const tps = txToday / 86400; // simple approximation
                 document.getElementById("metric-avg-block-time").innerText =
                     avgBlockTime ? formatNumber(avgBlockTime) + " s" : "–";
                 document.getElementById("metric-tps").innerText = formatNumber(tps);
                 document.getElementById("metric-utilization").innerText =
-                    utilization !== null && utilization !== undefined
+                    (utilization !== null && utilization !== undefined)
                         ? formatNumber(utilization) + " %"
                         : "–";
                 document.getElementById("metric-tvl").innerText =
-                    tvl !== null && tvl !== undefined ? formatNumber(tvl) : "–";
+                    (tvl !== null && tvl !== undefined) ? formatNumber(tvl) : "–";
 
                 clearSkeleton("metric-avg-block-time");
                 clearSkeleton("metric-tps");
@@ -301,7 +326,7 @@
             }
         }
 
-        // DAILY TX CHART + GAS BANDS
+        // DAILY TX CHART + GAS + NEW WALLETS CHART
         async function loadCharts() {
             try {
                 const data = await fetchJson("/stats/charts");
@@ -319,8 +344,8 @@
 
                 const values = daily.map((item) => Number(item.count) || 0);
 
-                const ctx = document.getElementById("growthChart").getContext("2d");
-                new Chart(ctx, {
+                const txCtx = document.getElementById("growthChart").getContext("2d");
+                new Chart(txCtx, {
                     type: "line",
                     data: {
                         labels,
@@ -338,14 +363,12 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            y: {
-                                beginAtZero: true
-                            }
+                            y: { beginAtZero: true }
                         }
                     }
                 });
 
-                // Gas bands (from charts response)
+                // Gas data (from charts response)
                 if (data.low_gas !== undefined) {
                     const low = formatNumber(data.low_gas) + " gwei";
                     const avg = formatNumber(data.avg_gas_price || data.avg_gas) + " gwei";
@@ -362,6 +385,52 @@
                     clearSkeleton(elLow);
                     clearSkeleton(elAvg);
                     clearSkeleton(elHigh);
+                }
+
+                // New wallets per day – this depends on what your backend exposes
+                const walletsArray =
+                    data.daily_new_addresses ||
+                    data.daily_wallets ||
+                    data.new_wallets ||
+                    [];
+
+                if (walletsArray.length && document.getElementById("walletsChart")) {
+                    walletsArray.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const wLabels = walletsArray.map((item) => {
+                        const d = new Date(item.date);
+                        return d.toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short"
+                        });
+                    });
+                    const wValues = walletsArray.map((item) =>
+                        Number(item.count || item.value || item.addresses || 0)
+                    );
+
+                    const wCtx = document.getElementById("walletsChart").getContext("2d");
+                    new Chart(wCtx, {
+                        type: "bar",
+                        data: {
+                            labels: wLabels,
+                            datasets: [
+                                {
+                                    label: "New wallets per day",
+                                    data: wValues,
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+                } else {
+                    const emptyEl = document.getElementById("walletsChart-empty");
+                    if (emptyEl) emptyEl.style.display = "block";
                 }
             } catch (err) {
                 console.error("loadCharts error:", err);
@@ -383,9 +452,6 @@
                 }
 
                 items.slice(0, 10).forEach((tx) => {
-                    // Values:
-                    // - if value_formatted is present, assume it's human-readable
-                    // - otherwise, treat value as 18-decimals
                     let displayValue;
                     if (tx.value_formatted !== undefined && tx.value_formatted !== null) {
                         displayValue = Number(tx.value_formatted);
@@ -398,9 +464,21 @@
 
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-                        <td title="${tx.hash}">${shortenHash(tx.hash)}</td>
-                        <td title="${tx.from_address}">${shortenHash(tx.from_address)}</td>
-                        <td title="${tx.to_address}">${shortenHash(tx.to_address)}</td>
+                        <td title="${tx.hash}">
+                            <button class="link-button" onclick="openTxDetail('${tx.hash}')">
+                                ${shortenHash(tx.hash)}
+                            </button>
+                        </td>
+                        <td title="${tx.from_address}">
+                            <button class="link-button" onclick="openAddressDetail('${tx.from_address}')">
+                                ${shortenHash(tx.from_address)}
+                            </button>
+                        </td>
+                        <td title="${tx.to_address}">
+                            <button class="link-button" onclick="openAddressDetail('${tx.to_address}')">
+                                ${shortenHash(tx.to_address)}
+                            </button>
+                        </td>
                         <td>${formatNumber(displayValue)}</td>
                         <td>${formatTimestamp(timestampRaw)}</td>
                     `;
@@ -430,11 +508,16 @@
 
                 items.slice(0, 10).forEach((acc, index) => {
                     const balance = from18(acc.balance || 0);
+                    const addr = acc.address || acc.account || acc.wallet || "";
 
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td>${index + 1}</td>
-                        <td title="${acc.address}">${shortenHash(acc.address, 14)}</td>
+                        <td title="${addr}">
+                            <button class="link-button" onclick="openAddressDetail('${addr}')">
+                                ${shortenHash(addr, 14)}
+                            </button>
+                        </td>
                         <td>${formatNumber(balance)}</td>
                     `;
                     tbody.appendChild(tr);
@@ -445,6 +528,138 @@
                 tbody.innerHTML =
                     '<tr><td colspan="3" class="placeholder">Error while loading top wallets</td></tr>';
             }
+        }
+
+        // DETAIL PANEL LOGIC
+        function openTxDetail(hash) {
+            openDetail("transaction", hash);
+        }
+
+        function openAddressDetail(address) {
+            openDetail("address", address);
+        }
+
+        async function openDetail(type, id) {
+            const overlay = document.getElementById("detail-overlay");
+            const content = document.getElementById("detail-content");
+            overlay.classList.remove("hidden");
+            content.innerHTML = `<p class="placeholder">Loading ${type} details…</p>`;
+
+            try {
+                if (type === "transaction") {
+                    const tx = await fetchJson(`/transactions/${id}`);
+                    renderTxDetail(tx);
+                } else {
+                    const addr = await fetchJson(`/addresses/${id}`);
+                    renderAddressDetail(addr);
+                }
+            } catch (err) {
+                console.error("openDetail error:", err);
+                content.innerHTML =
+                    `<p class="placeholder">Error while loading ${type} details.</p>`;
+            }
+        }
+
+        function closeDetail() {
+            const overlay = document.getElementById("detail-overlay");
+            overlay.classList.add("hidden");
+        }
+
+        function renderTxDetail(tx) {
+            const content = document.getElementById("detail-content");
+            let displayValue;
+            if (tx.value_formatted !== undefined && tx.value_formatted !== null) {
+                displayValue = Number(tx.value_formatted);
+            } else {
+                displayValue = from18(tx.value || 0);
+            }
+
+            const gasPriceGwei = tx.gas_price ? Number(tx.gas_price) / 1e9 : null;
+            const created = tx.created_at || tx.timestamp || tx.time;
+
+            content.innerHTML = `
+                <h2 class="detail-title">Transaction details</h2>
+                <p class="detail-id">${tx.hash || "Unknown hash"}</p>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">
+                            ${tx.status === 1 || tx.success ? "Success" : "Failed / Unknown"}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Block</span>
+                        <span class="detail-value">${tx.block_number || "–"}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">From</span>
+                        <span class="detail-value mono">${tx.from_address || "–"}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">To</span>
+                        <span class="detail-value mono">${tx.to_address || "–"}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Value</span>
+                        <span class="detail-value">${formatNumber(displayValue)}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Gas used</span>
+                        <span class="detail-value">${formatNumber(tx.gas_used || tx.gas || 0)}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Gas price</span>
+                        <span class="detail-value">
+                            ${gasPriceGwei !== null ? formatNumber(gasPriceGwei) + " gwei" : "–"}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Timestamp</span>
+                        <span class="detail-value">
+                            ${created ? formatTimestamp(created) : "–"}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAddressDetail(addr) {
+            const content = document.getElementById("detail-content");
+
+            const address =
+                addr.address || addr.account || addr.wallet || addr.id || "Unknown address";
+            const balanceRaw = addr.balance || addr.value || 0;
+            const balance = from18(balanceRaw);
+            const txCount = addr.tx_count || addr.transaction_count || addr.transactions_count || "–";
+            const firstSeen = addr.first_tx_at || addr.first_seen || addr.created_at;
+            const lastSeen = addr.last_tx_at || addr.last_seen || addr.updated_at;
+
+            content.innerHTML = `
+                <h2 class="detail-title">Wallet details</h2>
+                <p class="detail-id mono">${address}</p>
+                <div class="detail-grid">
+                    <div>
+                        <span class="detail-label">Balance</span>
+                        <span class="detail-value">${formatNumber(balance)}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Total transactions</span>
+                        <span class="detail-value">${txCount}</span>
+                    </div>
+                    <div>
+                        <span class="detail-label">First seen</span>
+                        <span class="detail-value">
+                            ${firstSeen ? formatTimestamp(firstSeen) : "–"}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="detail-label">Last activity</span>
+                        <span class="detail-value">
+                            ${lastSeen ? formatTimestamp(lastSeen) : "–"}
+                        </span>
+                    </div>
+                </div>
+            `;
         }
 
         async function initDashboard() {
