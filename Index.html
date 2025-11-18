@@ -14,7 +14,7 @@
     <header class="top-bar">
         <div class="logo-area">
             <div class="logo-circle">☕</div>
-            <div class="logo-text">
+            <div classlogo-text>
                 <span class="logo-main">Café Chain</span>
                 <span class="logo-sub">Powered by LadyScan</span>
             </div>
@@ -158,6 +158,22 @@
             }
         }
 
+        // Convert 18-decimal on-chain values (wei-style) into a normal JS number
+        function from18(value) {
+            if (value === null || value === undefined) return 0;
+
+            try {
+                const n = BigInt(value);
+                const factor = BigInt("1000000000000000000"); // 1e18
+                const whole = Number(n / factor);
+                const decimal = Number(n % factor) / 1e18;
+                return whole + decimal;
+            } catch {
+                // Fallback if it's not a BigInt-compatible value
+                return Number(value) / 1e18;
+            }
+        }
+
         function shortenHash(hash, length = 10) {
             if (!hash) return "–";
             if (hash.length <= length) return hash;
@@ -180,44 +196,47 @@
             return response.json();
         }
 
-async function loadStats() {
-    try {
-        const data = await fetchJson("/stats");
+        // === STATS: USE EXACT FIELD NAMES FROM /stats ===
+        async function loadStats() {
+            try {
+                const data = await fetchJson("/stats");
+                console.log("Stats response:", data);
 
-        console.log("Stats response:", data);
+                const blockCount = data.total_blocks;
+                const addressCount = data.total_addresses;
+                const txCount = data.total_transactions;
 
-        // Gebruik nu precies de velden uit jouw API:
-        const blockCount = data.total_blocks;
-        const addressCount = data.total_addresses;
-        const txCount = data.total_transactions;
+                document.getElementById("block-count").innerText = formatNumber(blockCount);
+                document.getElementById("wallet-count").innerText = formatNumber(addressCount);
+                document.getElementById("transaction-count").innerText = formatNumber(txCount);
 
-        document.getElementById("block-count").innerText = formatNumber(blockCount);
-        document.getElementById("wallet-count").innerText = formatNumber(addressCount);
-        document.getElementById("transaction-count").innerText = formatNumber(txCount);
+                document.getElementById("last-updated").innerText =
+                    "Updated: " + new Date().toLocaleTimeString("en-GB");
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
-        // Bonus: je kunt deze eventueel later nog op extra plekken tonen:
-        // data.average_block_time
-        // data.transactions_today
-        // data.gas_used_today
-        // etc.
-
-        document.getElementById("last-updated").innerText =
-            "Updated: " + new Date().toLocaleTimeString("en-GB");
-    } catch (err) {
-        console.error(err);
-    }
-}
-
+        // === CHARTS: USE daily_transactions[].count FROM /stats/charts ===
         async function loadCharts() {
             try {
                 const data = await fetchJson("/stats/charts");
-
                 console.log("Charts response:", data);
 
-                const daily = data.daily_transactions || data.tx_per_day || data.transactions || [];
+                const daily = data.daily_transactions || [];
 
-                const labels = daily.map((item) => item.date || item.day || item.timestamp || "");
-                const values = daily.map((item) => item.value || item.tx_count || item.transactions || 0);
+                // Sort by date ascending (old → new)
+                daily.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                const labels = daily.map((item) => {
+                    const d = new Date(item.date);
+                    return d.toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short"
+                    });
+                });
+
+                const values = daily.map((item) => Number(item.count) || 0);
 
                 const ctx = document.getElementById("growthChart").getContext("2d");
                 new Chart(ctx, {
@@ -230,7 +249,7 @@ async function loadStats() {
                                 data: values,
                                 borderWidth: 2,
                                 tension: 0.25,
-                                pointRadius: 2
+                                pointRadius: 3
                             }
                         ]
                     },
@@ -251,8 +270,10 @@ async function loadStats() {
                                 }
                             },
                             y: {
+                                beginAtZero: true,
                                 ticks: {
-                                    font: { family: "'Inter', Arial, sans-serif" }
+                                    font: { family: "'Inter', Arial, sans-serif" },
+                                    precision: 0
                                 }
                             }
                         }
@@ -263,6 +284,7 @@ async function loadStats() {
             }
         }
 
+        // === LATEST TRANSACTIONS: DIVIDE value/amount BY 1e18 ===
         async function loadLatestTransactions() {
             try {
                 const data = await fetchJson("/main-page/transactions");
@@ -273,7 +295,8 @@ async function loadStats() {
 
                 const items = data.items || data.transactions || data || [];
                 if (!items.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="placeholder">No transactions found</td></tr>';
+                    tbody.innerHTML =
+                        '<tr><td colspan="5" class="placeholder">No transactions found</td></tr>';
                     return;
                 }
 
@@ -283,14 +306,17 @@ async function loadStats() {
                     const hash = tx.hash || tx.tx_hash || tx.id;
                     const from = tx.from || tx.sender || tx.from_address;
                     const to = tx.to || tx.receiver || tx.to_address;
-                    const value = tx.value || tx.amount || tx.value_formatted;
+
+                    const rawValue = tx.value || tx.amount || tx.value_formatted || 0;
+                    const value = from18(rawValue);
+
                     const timestamp = tx.timestamp || tx.time || tx.block_time;
 
                     tr.innerHTML = `
                         <td title="${hash || ""}">${shortenHash(hash)}</td>
                         <td title="${from || ""}">${shortenHash(from || "")}</td>
                         <td title="${to || ""}">${shortenHash(to || "")}</td>
-                        <td>${value !== undefined ? value : "–"}</td>
+                        <td>${formatNumber(value)}</td>
                         <td>${formatTimestamp(timestamp)}</td>
                     `;
                     tbody.appendChild(tr);
@@ -303,6 +329,7 @@ async function loadStats() {
             }
         }
 
+        // === TOP ACCOUNTS: DIVIDE balance BY 1e18 ===
         async function loadTopAccounts() {
             try {
                 const data = await fetchJson("/stats/top-accounts");
@@ -313,19 +340,22 @@ async function loadStats() {
 
                 const items = data.items || data.accounts || data || [];
                 if (!items.length) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="placeholder">No data found</td></tr>';
+                    tbody.innerHTML =
+                        '<tr><td colspan="3" class="placeholder">No data found</td></tr>';
                     return;
                 }
 
                 items.slice(0, 10).forEach((acc, index) => {
                     const address = acc.address || acc.account || acc.wallet;
-                    const balance = acc.balance || acc.value || acc.amount;
+
+                    const rawBalance = acc.balance || acc.value || acc.amount || 0;
+                    const balance = from18(rawBalance);
 
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td>${index + 1}</td>
                         <td title="${address || ""}">${shortenHash(address || "", 14)}</td>
-                        <td>${balance !== undefined ? balance : "–"}</td>
+                        <td>${formatNumber(balance)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
