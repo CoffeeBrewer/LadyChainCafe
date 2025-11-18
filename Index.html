@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head:
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Café Blockchain Dashboard</title>
+    <title>LadyChain Café Dashboard</title>
     <link rel="stylesheet" href="style.css" />
-    <!-- Chart.js for charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -13,42 +12,48 @@
 
     <header class="top-bar">
         <div class="logo-area">
-            <div class="logo-circle">☕</div>
+            <div class="logo-circle">
+                <!-- Als je een eigen logo hebt:
+                <img src="ladychain-logo.svg" alt="LadyChain Logo" class="logo-img" />
+                -->
+                <span class="logo-initials">LC</span>
+            </div>
             <div class="logo-text">
-                <span class="logo-main">Café Chain</span>
-                <span class="logo-sub">Powered by LadyScan</span>
+                <span class="logo-main">LadyChain Café</span>
+                <span class="logo-sub">Explorer dashboard for LadyChain</span>
             </div>
         </div>
         <div class="network-pill">
             <span class="dot"></span>
-            <span id="network-name">Mainnet</span>
+            <span id="network-name">LadyChain Mainnet</span>
         </div>
     </header>
 
     <main class="dashboard-container">
-        <section class="hero">
+        <section class="hero fade-in">
             <div>
-                <h1>Welcome to the Blockchain Café</h1>
+                <h1>Welcome to the LadyChain Café</h1>
                 <p class="hero-subtitle">
-                    Grab a coffee and watch your chain grow:
-                    blocks, wallets, transactions and more – all in real time.
+                    Grab a coffee and watch LadyChain grow — blocks, wallets, transactions,
+                    gas and network health, all in real time.
                 </p>
             </div>
+
             <div class="hero-badge">
-                <span class="badge-label">Live chain health</span>
-                <span id="last-updated" class="badge-value">–</span>
+                <span class="badge-label">Live network health</span>
+                <span id="last-updated" class="badge-value skeleton">Loading…</span>
             </div>
         </section>
 
-        <!-- Stat cards -->
-        <section class="cards">
+        <!-- MAIN STATS CARDS -->
+        <section class="cards fade-in">
             <article class="card">
                 <div class="card-header">
                     <span class="card-icon">📦</span>
                     <h2>Blocks</h2>
                 </div>
-                <p class="card-label">Total number of blocks</p>
-                <p id="block-count" class="card-value">–</p>
+                <p class="card-label">Total blocks on LadyChain</p>
+                <p id="block-count" class="card-value skeleton">–</p>
             </article>
 
             <article class="card">
@@ -56,43 +61,87 @@
                     <span class="card-icon">👛</span>
                     <h2>Wallets</h2>
                 </div>
-                <p class="card-label">Unique addresses</p>
-                <p id="wallet-count" class="card-value">–</p>
+                <p class="card-label">Unique LadyChain addresses</p>
+                <p id="wallet-count" class="card-value skeleton">–</p>
             </article>
 
             <article class="card">
                 <div class="card-header">
                     <span class="card-icon">💸</span>
-                    <h2>Transactions</h2>
+                    <h2>Total Transactions</h2>
                 </div>
-                <p class="card-label">Total number of transactions</p>
-                <p id="transaction-count" class="card-value">–</p>
+                <p class="card-label">All transactions on LadyChain</p>
+                <p id="transaction-count" class="card-value skeleton">–</p>
+            </article>
+
+            <article class="card">
+                <div class="card-header">
+                    <span class="card-icon">☕</span>
+                    <h2>Transactions Today</h2>
+                </div>
+                <p class="card-label">Daily activity on LadyChain</p>
+                <p id="transaction-today" class="card-value skeleton">–</p>
             </article>
         </section>
 
-        <!-- Chart: daily growth -->
-        <section class="panel">
+        <!-- NETWORK METRICS STRIP -->
+        <section class="metrics-row fade-in">
+            <div class="metric-pill">
+                <span class="metric-label">Avg block time</span>
+                <span id="metric-avg-block-time" class="metric-value skeleton">–</span>
+            </div>
+            <div class="metric-pill">
+                <span class="metric-label">Approx. TPS</span>
+                <span id="metric-tps" class="metric-value skeleton">–</span>
+            </div>
+            <div class="metric-pill">
+                <span class="metric-label">Network utilization</span>
+                <span id="metric-utilization" class="metric-value skeleton">–</span>
+            </div>
+            <div class="metric-pill">
+                <span class="metric-label">TVL</span>
+                <span id="metric-tvl" class="metric-value skeleton">–</span>
+            </div>
+        </section>
+
+        <!-- DAILY GROWTH + GAS -->
+        <section class="panel fade-in">
             <div class="panel-header">
                 <div>
-                    <h2>Daily growth</h2>
+                    <h2>LadyChain Daily Growth</h2>
                     <p class="panel-subtitle">
-                        Transactions per day – see how lively your café chain is.
+                        Transactions per day — see how active LadyChain is over time.
                     </p>
                 </div>
             </div>
             <div class="panel-body">
                 <canvas id="growthChart"></canvas>
+
+                <div class="gas-badges">
+                    <div class="gas-badge">
+                        <span class="gas-label">Low gas</span>
+                        <span id="gas-low" class="gas-value skeleton">–</span>
+                    </div>
+                    <div class="gas-badge">
+                        <span class="gas-label">Average gas</span>
+                        <span id="gas-avg" class="gas-value skeleton">–</span>
+                    </div>
+                    <div class="gas-badge">
+                        <span class="gas-label">High gas</span>
+                        <span id="gas-high" class="gas-value skeleton">–</span>
+                    </div>
+                </div>
             </div>
         </section>
 
         <section class="two-column">
-            <!-- Latest transactions -->
-            <section class="panel">
+            <!-- LATEST TX -->
+            <section class="panel fade-in">
                 <div class="panel-header">
                     <div>
-                        <h2>Latest transactions</h2>
+                        <h2>Latest LadyChain Transactions</h2>
                         <p class="panel-subtitle">
-                            The most recent movements on the chain.
+                            The most recent transfers and contract interactions on LadyChain.
                         </p>
                     </div>
                 </div>
@@ -108,19 +157,19 @@
                             </tr>
                         </thead>
                         <tbody id="latest-transactions-body">
-                            <tr><td colspan="5" class="placeholder">Loading…</td></tr>
+                            <tr><td colspan="5" class="placeholder">Loading latest transactions…</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Richest wallets -->
-            <section class="panel">
+            <!-- RICHEST WALLETS -->
+            <section class="panel fade-in">
                 <div class="panel-header">
                     <div>
-                        <h2>Richest wallets</h2>
+                        <h2>Richest LadyChain Wallets</h2>
                         <p class="panel-subtitle">
-                            The biggest accounts at the bar.
+                            Top addresses by balance on LadyChain.
                         </p>
                     </div>
                 </div>
@@ -134,7 +183,7 @@
                             </tr>
                         </thead>
                         <tbody id="top-accounts-body">
-                            <tr><td colspan="3" class="placeholder">Loading…</td></tr>
+                            <tr><td colspan="3" class="placeholder">Loading top wallets…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -143,40 +192,29 @@
     </main>
 
     <footer class="footer">
-        Brewed with ☕ &amp; 💻 – live data from <code>ladyscan.us</code>
+        Brewed with ☕ & 💻 — live data from <code>ladyscan.us</code>
     </footer>
 
     <script>
         const API_BASE = "https://ladyscan.us/api/v2";
 
-        // Format number with max 2 decimals, no unnecessary .00
         function formatNumber(value) {
-            if (
-                value === null ||
-                value === undefined ||
-                value === "" ||
-                isNaN(value)
-            ) {
+            if (value === null || value === undefined || value === "" || isNaN(value)) {
                 return "–";
             }
-
             const num = Number(value);
-            // round to 2 decimals, then strip trailing .00, then add thousands separators
             return Number(num.toFixed(2)).toLocaleString("en-US");
         }
 
-        // Convert 18-decimal on-chain values (wei-style) into a normal JS number
         function from18(value) {
             if (value === null || value === undefined) return 0;
-
             try {
                 const n = BigInt(value);
-                const factor = BigInt("1000000000000000000"); // 1e18
+                const factor = BigInt("1000000000000000000");
                 const whole = Number(n / factor);
                 const decimal = Number(n % factor) / 1e18;
                 return whole + decimal;
             } catch {
-                // Fallback if it's not a BigInt-compatible value
                 return Number(value) / 1e18;
             }
         }
@@ -189,50 +227,86 @@
 
         function formatTimestamp(ts) {
             if (!ts) return "–";
-            const d = new Date(ts);
-            if (isNaN(d.getTime())) return ts;
-            return d.toLocaleString("en-GB");
+
+            const num = Number(ts);
+            if (!isNaN(num)) {
+                const ms = num < 1e12 ? num * 1000 : num;
+                const d = new Date(ms);
+                if (!isNaN(d.getTime())) return d.toLocaleString("en-GB");
+            }
+
+            const d2 = new Date(ts);
+            if (!isNaN(d2.getTime())) return d2.toLocaleString("en-GB");
+
+            return String(ts);
+        }
+
+        function clearSkeleton(id) {
+            const el = typeof id === "string" ? document.getElementById(id) : id;
+            if (el) el.classList.remove("skeleton");
         }
 
         async function fetchJson(path, params = "") {
             const url = API_BASE + path + params;
             const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error("API error " + response.status + " at " + url);
-            }
+            if (!response.ok) throw new Error("API error " + response.status + " at " + url);
             return response.json();
         }
 
-        // === STATS: USE EXACT FIELD NAMES FROM /stats ===
+        // MAIN STATS + METRICS
         async function loadStats() {
             try {
                 const data = await fetchJson("/stats");
-                console.log("Stats response:", data);
 
-                const blockCount = data.total_blocks;
-                const addressCount = data.total_addresses;
-                const txCount = data.total_transactions;
+                const blocks = data.total_blocks;
+                const addresses = data.total_addresses;
+                const totalTx = data.total_transactions;
+                const txToday = Number(data.transactions_today || 0);
+                const avgBlockTime = data.average_block_time || data.avg_block_time;
+                const utilization = data.network_utilization_percentage;
+                const tvl = data.tvl;
 
-                document.getElementById("block-count").innerText = formatNumber(blockCount);
-                document.getElementById("wallet-count").innerText = formatNumber(addressCount);
-                document.getElementById("transaction-count").innerText = formatNumber(txCount);
+                document.getElementById("block-count").innerText = formatNumber(blocks);
+                document.getElementById("wallet-count").innerText = formatNumber(addresses);
+                document.getElementById("transaction-count").innerText = formatNumber(totalTx);
+                document.getElementById("transaction-today").innerText = formatNumber(txToday);
 
-                document.getElementById("last-updated").innerText =
-                    "Updated: " + new Date().toLocaleTimeString("en-GB");
+                clearSkeleton("block-count");
+                clearSkeleton("wallet-count");
+                clearSkeleton("transaction-count");
+                clearSkeleton("transaction-today");
+
+                // Metrics
+                const tps = txToday / 86400; // simple approximation
+                document.getElementById("metric-avg-block-time").innerText =
+                    avgBlockTime ? formatNumber(avgBlockTime) + " s" : "–";
+                document.getElementById("metric-tps").innerText = formatNumber(tps);
+                document.getElementById("metric-utilization").innerText =
+                    utilization !== null && utilization !== undefined
+                        ? formatNumber(utilization) + " %"
+                        : "–";
+                document.getElementById("metric-tvl").innerText =
+                    tvl !== null && tvl !== undefined ? formatNumber(tvl) : "–";
+
+                clearSkeleton("metric-avg-block-time");
+                clearSkeleton("metric-tps");
+                clearSkeleton("metric-utilization");
+                clearSkeleton("metric-tvl");
+
+                const updated = document.getElementById("last-updated");
+                updated.innerText = "Updated: " + new Date().toLocaleTimeString("en-GB");
+                clearSkeleton(updated);
             } catch (err) {
-                console.error(err);
+                console.error("loadStats error:", err);
             }
         }
 
-        // === CHARTS: USE daily_transactions[].count FROM /stats/charts ===
+        // DAILY TX CHART + GAS BANDS
         async function loadCharts() {
             try {
                 const data = await fetchJson("/stats/charts");
-                console.log("Charts response:", data);
 
                 const daily = data.daily_transactions || [];
-
-                // Sort by date ascending (old → new)
                 daily.sort((a, b) => new Date(a.date) - new Date(b.date));
 
                 const labels = daily.map((item) => {
@@ -252,7 +326,7 @@
                         labels,
                         datasets: [
                             {
-                                label: "Transactions per day",
+                                label: "Daily transactions",
                                 data: values,
                                 borderWidth: 2,
                                 tension: 0.25,
@@ -263,44 +337,45 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    font: { family: "'Inter', Arial, sans-serif" }
-                                }
-                            }
-                        },
                         scales: {
-                            x: {
-                                ticks: {
-                                    font: { family: "'Inter', Arial, sans-serif" }
-                                }
-                            },
                             y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    font: { family: "'Inter', Arial, sans-serif" },
-                                    precision: 0
-                                }
+                                beginAtZero: true
                             }
                         }
                     }
                 });
+
+                // Gas bands (from charts response)
+                if (data.low_gas !== undefined) {
+                    const low = formatNumber(data.low_gas) + " gwei";
+                    const avg = formatNumber(data.avg_gas_price || data.avg_gas) + " gwei";
+                    const high = formatNumber(data.high_gas) + " gwei";
+
+                    const elLow = document.getElementById("gas-low");
+                    const elAvg = document.getElementById("gas-avg");
+                    const elHigh = document.getElementById("gas-high");
+
+                    elLow.innerText = low;
+                    elAvg.innerText = avg;
+                    elHigh.innerText = high;
+
+                    clearSkeleton(elLow);
+                    clearSkeleton(elAvg);
+                    clearSkeleton(elHigh);
+                }
             } catch (err) {
-                console.error(err);
+                console.error("loadCharts error:", err);
             }
         }
 
-        // === LATEST TRANSACTIONS: DIVIDE value/amount BY 1e18 AND FORMAT ===
+        // LATEST TRANSACTIONS
         async function loadLatestTransactions() {
             try {
                 const data = await fetchJson("/main-page/transactions");
-                console.log("Latest tx response:", data);
-
                 const tbody = document.getElementById("latest-transactions-body");
                 tbody.innerHTML = "";
 
-                const items = data.items || data.transactions || data || [];
+                const items = data.items || [];
                 if (!items.length) {
                     tbody.innerHTML =
                         '<tr><td colspan="5" class="placeholder">No transactions found</td></tr>';
@@ -308,44 +383,45 @@
                 }
 
                 items.slice(0, 10).forEach((tx) => {
+                    // Values:
+                    // - if value_formatted is present, assume it's human-readable
+                    // - otherwise, treat value as 18-decimals
+                    let displayValue;
+                    if (tx.value_formatted !== undefined && tx.value_formatted !== null) {
+                        displayValue = Number(tx.value_formatted);
+                    } else {
+                        displayValue = from18(tx.value || 0);
+                    }
+
+                    const timestampRaw =
+                        tx.created_at || tx.updated_at || tx.timestamp || tx.time || tx.block_time;
+
                     const tr = document.createElement("tr");
-
-                    const hash = tx.hash || tx.tx_hash || tx.id;
-                    const from = tx.from || tx.sender || tx.from_address;
-                    const to = tx.to || tx.receiver || tx.to_address;
-
-                    const rawValue = tx.value || tx.amount || tx.value_formatted || 0;
-                    const value = from18(rawValue);
-
-                    const timestamp = tx.timestamp || tx.time || tx.block_time;
-
                     tr.innerHTML = `
-                        <td title="${hash || ""}">${shortenHash(hash)}</td>
-                        <td title="${from || ""}">${shortenHash(from || "")}</td>
-                        <td title="${to || ""}">${shortenHash(to || "")}</td>
-                        <td>${formatNumber(value)}</td>
-                        <td>${formatTimestamp(timestamp)}</td>
+                        <td title="${tx.hash}">${shortenHash(tx.hash)}</td>
+                        <td title="${tx.from_address}">${shortenHash(tx.from_address)}</td>
+                        <td title="${tx.to_address}">${shortenHash(tx.to_address)}</td>
+                        <td>${formatNumber(displayValue)}</td>
+                        <td>${formatTimestamp(timestampRaw)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                console.error(err);
+                console.error("loadLatestTransactions error:", err);
                 const tbody = document.getElementById("latest-transactions-body");
                 tbody.innerHTML =
                     '<tr><td colspan="5" class="placeholder">Error while loading transactions</td></tr>';
             }
         }
 
-        // === TOP ACCOUNTS: DIVIDE balance BY 1e18 AND FORMAT ===
+        // RICHEST WALLETS
         async function loadTopAccounts() {
             try {
                 const data = await fetchJson("/stats/top-accounts");
-                console.log("Top accounts response:", data);
-
                 const tbody = document.getElementById("top-accounts-body");
                 tbody.innerHTML = "";
 
-                const items = data.items || data.accounts || data || [];
+                const items = data.items || [];
                 if (!items.length) {
                     tbody.innerHTML =
                         '<tr><td colspan="3" class="placeholder">No data found</td></tr>';
@@ -353,24 +429,21 @@
                 }
 
                 items.slice(0, 10).forEach((acc, index) => {
-                    const address = acc.address || acc.account || acc.wallet;
-
-                    const rawBalance = acc.balance || acc.value || acc.amount || 0;
-                    const balance = from18(rawBalance);
+                    const balance = from18(acc.balance || 0);
 
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td>${index + 1}</td>
-                        <td title="${address || ""}">${shortenHash(address || "", 14)}</td>
+                        <td title="${acc.address}">${shortenHash(acc.address, 14)}</td>
                         <td>${formatNumber(balance)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                console.error(err);
+                console.error("loadTopAccounts error:", err);
                 const tbody = document.getElementById("top-accounts-body");
                 tbody.innerHTML =
-                    '<tr><td colspan="3" class="placeholder">Error while loading richest wallets</td></tr>';
+                    '<tr><td colspan="3" class="placeholder">Error while loading top wallets</td></tr>';
             }
         }
 
